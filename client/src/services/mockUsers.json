@@ -1,0 +1,49 @@
+[
+  {
+    "id": "usr_001",
+    "name": "Admin User",
+    "email": "admin@campuscareers.edu",
+    "role": "admin",
+    "createdAt": "2026-03-01"
+  },
+  {
+    "id": "rec_001",
+    "name": "Dr. Sarah Jenkins",
+    "email": "sjenkins@stanford.edu",
+    "role": "recruiter",
+    "company": "Stanford University",
+    "createdAt": "2026-03-15"
+  },
+  {
+    "id": "rec_002",
+    "name": "Marcus Thorne",
+    "email": "mthorne@jhmi.edu",
+    "role": "recruiter",
+    "company": "Johns Hopkins Medicine",
+    "createdAt": "2026-03-18"
+  },
+  {
+    "id": "rec_003",
+    "name": "Elena Rodriguez",
+    "email": "erodriguez@mit.edu",
+    "role": "recruiter",
+    "company": "MIT",
+    "createdAt": "2026-03-20"
+  },
+  {
+    "id": "seek_001",
+    "name": "Dr. Arthur Sterling",
+    "email": "asterling@oxford.edu",
+    "role": "seeker",
+    "bio": "Post-doctoral researcher in computational linguistics",
+    "createdAt": "2026-04-01"
+  },
+  {
+    "id": "seek_002",
+    "name": "Dr. Elena Rossi",
+    "email": "erossi@sorbonne.edu",
+    "role": "seeker",
+    "bio": "PhD in Comparative Literature",
+    "createdAt": "2026-04-03"
+  }
+]

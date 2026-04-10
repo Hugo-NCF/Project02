@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  /* Parchment & Ink palette — "The Academic Editorial" */
+  --color-background: #fbf9f4;
+  --color-surface: #fbf9f4;
+  --color-surface-container-low: #f5f3ee;
+  --color-surface-container: #f0eee9;
+  --color-surface-container-high: #eae8e3;
+  --color-surface-container-highest: #e4e2dd;
+  --color-surface-variant: #e4e2dd;
+
+  --color-primary: #030813;
+  --color-primary-container: #1a202c;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #828796;
+
+  --color-secondary: #755934;
+  --color-secondary-container: #fdd7a7;
+  --color-brass: #b7966b;
+
+  --color-on-surface: #1b1c19;
+  --color-on-surface-variant: #45474c;
+  --color-outline: #76777c;
+  --color-outline-variant: #c6c6cc;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* Typography */
+  --font-headline: "Newsreader", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Sharp institutional corners — never pill-shaped */
+  --radius-none: 0;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "cv11";
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Editorial italic serif utility */
+.serif-italic {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-optical-sizing: auto;
+}
+
+/* Tracking utilities for editorial labels */
+.tracking-editorial {
+  letter-spacing: 0.2em;
+}
+
+/* Subtle paper grain using layered noise — "felt, not seen" depth */
+.paper-grain {
+  position: relative;
+}
+.paper-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+
+/* Velvet depth for dark panels */
+.velvet-depth {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(183, 150, 107, 0.08), transparent 60%),
+    linear-gradient(135deg, #030813 0%, #0a1220 45%, #1a202c 100%);
+}
+
+/* Editorial entrance animations */
+@keyframes editorial-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes divider-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-rise {
+  animation: editorial-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.animate-divider {
+  transform-origin: left center;
+  animation: divider-draw 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both;
+}

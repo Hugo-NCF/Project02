@@ -13,9 +13,17 @@ server/dist/
 .env.local
 .env.development
 .env.production
-*.env
-client/.env*
-server/.env*
+client/.env
+client/.env.local
+client/.env.development
+client/.env.production
+server/.env
+server/.env.local
+server/.env.development
+server/.env.production
+!.env.example
+!client/.env.example
+!server/.env.example
 
 # Firebase
 firebase-debug.log
