@@ -1,9 +1,10 @@
 [
   {
     "id": "usr_001",
-    "name": "Admin User",
+    "name": "Sebastian Rodriguez",
     "email": "admin@campuscareers.edu",
     "role": "admin",
+    "isDisabled": false,
     "createdAt": "2026-03-01"
   },
   {
@@ -12,6 +13,7 @@
     "email": "sjenkins@stanford.edu",
     "role": "recruiter",
     "company": "Stanford University",
+    "isDisabled": false,
     "createdAt": "2026-03-15"
   },
   {
@@ -20,6 +22,7 @@
     "email": "mthorne@jhmi.edu",
     "role": "recruiter",
     "company": "Johns Hopkins Medicine",
+    "isDisabled": false,
     "createdAt": "2026-03-18"
   },
   {
@@ -28,7 +31,17 @@
     "email": "erodriguez@mit.edu",
     "role": "recruiter",
     "company": "MIT",
+    "isDisabled": true,
     "createdAt": "2026-03-20"
+  },
+  {
+    "id": "rec_004",
+    "name": "Prof. James Whitmore",
+    "email": "jwhitmore@yale.edu",
+    "role": "recruiter",
+    "company": "Yale University",
+    "isDisabled": false,
+    "createdAt": "2026-03-25"
   },
   {
     "id": "seek_001",
@@ -36,6 +49,7 @@
     "email": "asterling@oxford.edu",
     "role": "seeker",
     "bio": "Post-doctoral researcher in computational linguistics",
+    "isDisabled": false,
     "createdAt": "2026-04-01"
   },
   {
@@ -44,6 +58,16 @@
     "email": "erossi@sorbonne.edu",
     "role": "seeker",
     "bio": "PhD in Comparative Literature",
+    "isDisabled": false,
     "createdAt": "2026-04-03"
+  },
+  {
+    "id": "seek_003",
+    "name": "Dr. Marcus Webb",
+    "email": "mwebb@princeton.edu",
+    "role": "seeker",
+    "bio": "Quantum Physics researcher, 8 publications",
+    "isDisabled": true,
+    "createdAt": "2026-04-07"
   }
 ]

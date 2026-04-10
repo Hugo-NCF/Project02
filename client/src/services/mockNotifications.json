@@ -1,0 +1,65 @@
+[
+  {
+    "id": "notif_001",
+    "type": "flag",
+    "icon": "gavel",
+    "title": "Reported Listing #job_003",
+    "body": "\"Dean of Student Affairs\" flagged for unverified salary range by two applicants.",
+    "timestamp": "2026-04-10T09:15:00Z",
+    "read": false
+  },
+  {
+    "id": "notif_002",
+    "type": "flag",
+    "icon": "security",
+    "title": "Suspicious Login Attempt",
+    "body": "Multiple failed login attempts detected on account: erodriguez@mit.edu. Account auto-locked.",
+    "timestamp": "2026-04-10T08:30:00Z",
+    "read": false
+  },
+  {
+    "id": "notif_003",
+    "type": "new_user",
+    "icon": "person_add",
+    "title": "New Recruiter Pending Approval",
+    "body": "Prof. James Whitmore (Yale University) registered as a recruiter and awaits verification.",
+    "timestamp": "2026-04-09T16:45:00Z",
+    "read": false
+  },
+  {
+    "id": "notif_004",
+    "type": "new_job",
+    "icon": "work",
+    "title": "New Position Posted",
+    "body": "Stanford University published: \"Assistant Professor of Computer Science\" in Faculty category.",
+    "timestamp": "2026-04-09T14:20:00Z",
+    "read": true
+  },
+  {
+    "id": "notif_005",
+    "type": "application",
+    "icon": "description",
+    "title": "Application Submitted",
+    "body": "Dr. Arthur Sterling applied to \"Associate Professor of History\" at Yale University.",
+    "timestamp": "2026-04-09T11:00:00Z",
+    "read": true
+  },
+  {
+    "id": "notif_006",
+    "type": "new_user",
+    "icon": "person_add",
+    "title": "New Job Seeker Joined",
+    "body": "Dr. Marcus Webb (Princeton) created a seeker profile. Credentials pending review.",
+    "timestamp": "2026-04-08T09:30:00Z",
+    "read": true
+  },
+  {
+    "id": "notif_007",
+    "type": "system",
+    "icon": "info",
+    "title": "System Health Check",
+    "body": "Scheduled monthly audit complete. All systems operational. 0 downtime recorded.",
+    "timestamp": "2026-04-08T02:00:00Z",
+    "read": true
+  }
+]
