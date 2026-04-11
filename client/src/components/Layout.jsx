@@ -13,8 +13,7 @@ export default function Layout() {
           <div>
             <span className="font-headline italic text-xl text-brass">Campus Careers</span>
             <p className="mt-3 text-[12px] text-on-primary-container max-w-xs leading-relaxed">
-              © {new Date().getFullYear()} Campus Careers · SWE Project 02 ·
-              An Editorial Excellence Publication.
+              © {new Date().getFullYear()} Campus Careers · SWE Project 02
             </p>
           </div>
           <div className="flex gap-8 text-[12px] text-on-primary-container">

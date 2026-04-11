@@ -75,11 +75,11 @@ export default function Register() {
           style={{ animationDelay: "0.1s" }}
         >
           <h1 className="serif-italic text-5xl leading-[1.05] text-on-primary lg:text-7xl">
-            Join the
+            Academic
             <br />
-            Scholarly
+            jobs,
             <br />
-            Network.
+            direct.
           </h1>
           <div className="mt-8 h-[2px] w-24 origin-left bg-brass animate-divider" />
         </div>
@@ -90,11 +90,8 @@ export default function Register() {
           style={{ animationDelay: "0.2s" }}
         >
           <p className="serif-italic text-lg leading-relaxed text-white/70">
-            "The Digital Dean of academic recruitment &mdash; where
-            institutional prestige meets global talent."
-          </p>
-          <p className="mt-4 text-[11px] font-sans uppercase tracking-[0.2em] text-white/35">
-            Est. 2026 &nbsp;•&nbsp; Editorial Excellence
+            Faculty, research, and staff openings &mdash; posted by the
+            institutions that are hiring.
           </p>
         </div>
       </aside>
@@ -105,20 +102,19 @@ export default function Register() {
           {/* Header */}
           <header className="space-y-4">
             <span className="animate-rise block text-[11px] font-bold uppercase tracking-[0.2em] text-secondary">
-              New Account
+              Create account
             </span>
             <h2
               className="animate-rise font-headline text-4xl text-primary md:text-5xl"
               style={{ animationDelay: "0.05s" }}
             >
-              Begin Your Journey
+              Sign up
             </h2>
             <p
               className="animate-rise max-w-md leading-relaxed text-on-surface-variant"
               style={{ animationDelay: "0.1s" }}
             >
-              Enter your credentials to access the premier network for higher
-              education career advancement.
+              Apply for academic jobs, or post listings for your institution.
             </p>
           </header>
 
@@ -140,7 +136,7 @@ export default function Register() {
                 label="Full Name"
                 value={name}
                 onChange={setName}
-                placeholder="Dr. Julian Sterling"
+                placeholder="Full name"
                 type="text"
                 required
               />
@@ -149,7 +145,7 @@ export default function Register() {
                 label="Email Address"
                 value={email}
                 onChange={setEmail}
-                placeholder="sterling@university.edu"
+                placeholder="you@university.edu"
                 type="email"
                 required
               />
@@ -167,12 +163,12 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Identity Selection */}
+            {/* Role selection */}
             <div className="space-y-6">
               <div className="flex items-center gap-4">
                 <div className="h-px flex-grow bg-outline-variant" />
                 <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/60">
-                  Identity Selection
+                  I'm a
                 </span>
                 <div className="h-px flex-grow bg-outline-variant" />
               </div>
@@ -181,15 +177,15 @@ export default function Register() {
                 <RoleCard
                   checked={role === "seeker"}
                   onSelect={() => setRole("seeker")}
-                  title="I am a Job Seeker"
-                  description="Discover faculty positions, research grants, and administrative leadership roles."
+                  title="Job Seeker"
+                  description="Apply for faculty, research, and staff positions."
                   icon={<GraduationIcon />}
                 />
                 <RoleCard
                   checked={role === "recruiter"}
                   onSelect={() => setRole("recruiter")}
-                  title="I am a Recruiter"
-                  description="Acquire top-tier talent for your institution's academic and executive branches."
+                  title="Recruiter"
+                  description="Post jobs and review applicants for your institution."
                   icon={<InstitutionIcon />}
                 />
               </div>
@@ -203,18 +199,18 @@ export default function Register() {
                 className="group relative w-full overflow-hidden bg-primary px-6 py-5 text-[13px] font-medium uppercase tracking-[0.2em] text-on-primary shadow-xl shadow-primary/10 transition-all duration-300 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="relative z-10">
-                  {submitting ? "Creating your Folio…" : "Create Professional Folio"}
+                  {submitting ? "Creating account…" : "Create account"}
                 </span>
                 <span className="absolute inset-y-0 left-0 w-0 bg-brass/15 transition-all duration-500 group-hover:w-full" />
               </button>
 
               <p className="text-center text-sm text-on-surface-variant">
-                Already part of the network?{" "}
+                Already have an account?{" "}
                 <Link
                   to="/login"
                   className="font-bold text-secondary underline decoration-1 underline-offset-4 transition-colors hover:text-brass"
                 >
-                  Sign In here.
+                  Sign in
                 </Link>
               </p>
             </div>
