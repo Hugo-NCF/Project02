@@ -7,7 +7,10 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Jobs from "./pages/Jobs";
+import JobDetail from "./pages/JobDetail";
+import ApplyForm from "./pages/ApplyForm";
 import SeekerDashboard from "./pages/SeekerDashboard";
+import ProfileEdit from "./pages/ProfileEdit";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
@@ -25,12 +28,29 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/:id" element={<JobDetail />} />
+            <Route
+              path="/jobs/:id/apply"
+              element={
+                <ProtectedRoute allowedRoles={["seeker"]}>
+                  <ApplyForm />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/seeker"
               element={
                 <ProtectedRoute allowedRoles={["seeker"]}>
                   <SeekerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/seeker/profile"
+              element={
+                <ProtectedRoute allowedRoles={["seeker"]}>
+                  <ProfileEdit />
                 </ProtectedRoute>
               }
             />
