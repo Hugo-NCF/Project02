@@ -1,18 +1,10 @@
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { applicationApi } from "../services/api";
 import mockJobs from "../services/mockJobs.json";
-import mockUsers from "../services/mockUsers.json";
 
-const APPS_KEY = "campus_careers_applications";
 const RECRUITER_JOBS_KEY = "campus_careers_recruiter_jobs";
-
-function getApplications() {
-  try {
-    return JSON.parse(localStorage.getItem(APPS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
 
 function getLocalJobs() {
   try {
@@ -27,17 +19,44 @@ const STATUS_STYLE = {
     "bg-secondary/10 text-secondary dark:bg-brass/10 dark:text-brass",
   reviewed:
     "bg-primary/10 text-primary dark:bg-[#fbf9f4]/10 dark:text-[#fbf9f4]",
+  interviewing:
+    "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400",
 };
 
 export default function Applicants() {
   const { id } = useParams();
-  const allJobs = [...mockJobs, ...getLocalJobs()];
-  const job = allJobs.find((j) => j.id === id);
-
-  // Block access if this job doesn't belong to the current recruiter
   const { currentUser } = useAuth();
-  const isOwner = job && job.recruiterId === currentUser?.uid;
-  const applications = getApplications().filter((a) => a.jobId === id);
+
+  const allJobs = [...mockJobs, ...getLocalJobs()];
+  const job = allJobs.find((j) => j.id === id || j._id === id);
+  const isOwner = job && (job.recruiterId === currentUser?.uid);
+
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!id || !isOwner) {
+      setLoading(false);
+      return;
+    }
+    applicationApi
+      .getByJob(id)
+      .then((res) => setApplications(res.items || []))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id, isOwner]);
+
+  async function handleStatusChange(appId, newStatus) {
+    try {
+      const updated = await applicationApi.updateStatus(appId, newStatus);
+      setApplications((prev) =>
+        prev.map((a) => (a._id === appId ? { ...a, status: updated.status } : a))
+      );
+    } catch (err) {
+      alert(err.message || "Failed to update status");
+    }
+  }
 
   if (!job || !isOwner) {
     return (
@@ -78,7 +97,15 @@ export default function Applicants() {
 
         <div className="h-px bg-outline-variant/30 dark:bg-[#1a202c] mb-8" />
 
-        {applications.length === 0 ? (
+        {loading ? (
+          <div className="py-16 text-center">
+            <p className="text-on-surface-variant dark:text-[#828796] italic">Loading applications…</p>
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center">
+            <p className="text-error italic">{error}</p>
+          </div>
+        ) : applications.length === 0 ? (
           <div className="py-16 text-center">
             <span className="material-symbols-outlined text-5xl text-on-surface-variant/30 dark:text-[#1a202c]">
               group
@@ -92,21 +119,17 @@ export default function Applicants() {
             <p className="text-sm text-on-surface-variant dark:text-[#828796] mb-4">
               {applications.length} application{applications.length !== 1 ? "s" : ""} received
             </p>
-            {applications.map((app, i) => {
-              const user = mockUsers.find(
-                (u) => u.id === app.applicantId
-              );
-              return (
+            {applications.map((app) => (
                 <div
-                  key={i}
+                  key={app._id}
                   className="bg-surface-container-low dark:bg-[#0d1829] border border-outline-variant/20 dark:border-[#1a202c] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-headline italic text-lg text-primary dark:text-[#fbf9f4]">
-                      {user?.name || app.applicantId}
+                      {app.applicantId}
                     </h3>
                     <p className="text-[12px] text-on-surface-variant dark:text-[#828796] mt-1">
-                      {user?.email || "—"} · Applied{" "}
+                      Applied{" "}
                       {new Date(app.dateApplied).toLocaleDateString()}
                     </p>
                     {app.coverLetter && (
@@ -119,7 +142,7 @@ export default function Applicants() {
                   <div className="flex items-center gap-4">
                     {app.resumeUrl && (
                       <a
-                        href={app.resumeUrl}
+                        href={app.resumeUrl.startsWith("/") ? `${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5050"}${app.resumeUrl}` : app.resumeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass hover:underline"
@@ -130,17 +153,20 @@ export default function Applicants() {
                         Resume
                       </a>
                     )}
-                    <span
-                      className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
-                        STATUS_STYLE[app.status] || STATUS_STYLE.pending
-                      }`}
+                    <select
+                      value={app.status || "pending"}
+                      onChange={(e) => handleStatusChange(app._id, e.target.value)}
+                      className="bg-surface-container dark:bg-[#0d1829] border border-outline-variant/30 dark:border-[#1a202c] text-[11px] font-bold uppercase tracking-widest text-primary dark:text-[#fbf9f4] px-2 py-1 focus:outline-none focus:border-secondary dark:focus:border-brass"
                     >
-                      {app.status || "pending"}
-                    </span>
+                      <option value="pending">Pending</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="interviewing">Interviewing</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
       </div>

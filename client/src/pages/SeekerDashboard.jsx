@@ -1,17 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { applicationApi } from "../services/api";
 import mockJobs from "../services/mockJobs.json";
-
-const APPS_KEY = "campus_careers_applications";
-
-function getApplications(uid) {
-  try {
-    const all = JSON.parse(localStorage.getItem(APPS_KEY) || "[]");
-    return all.filter((a) => a.applicantId === uid);
-  } catch {
-    return [];
-  }
-}
 
 const STATUS_STYLE = {
   pending:    "bg-secondary/10 text-secondary dark:bg-brass/10 dark:text-brass",
@@ -21,19 +12,35 @@ const STATUS_STYLE = {
 
 export default function SeekerDashboard() {
   const { currentUser } = useAuth();
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const applications = currentUser ? getApplications(currentUser.uid) : [];
+  useEffect(() => {
+    if (!currentUser) return;
+    applicationApi
+      .getMy()
+      .then((res) => setApplications(res.items || []))
+      .catch(() => setApplications([]))
+      .finally(() => setLoading(false));
+  }, [currentUser]);
 
   const appliedJobs = applications
     .map((app) => {
-      const job = mockJobs.find((j) => j.id === app.jobId);
+      // jobId may be populated (object) or a plain string
+      const job =
+        typeof app.jobId === "object" && app.jobId
+          ? app.jobId
+          : mockJobs.find((j) => j.id === app.jobId);
       return job ? { ...app, job } : null;
     })
     .filter(Boolean);
 
   const activeJobs = mockJobs.filter((j) => j.status === "active");
   const recommended = activeJobs
-    .filter((j) => !appliedJobs.some((a) => a.jobId === j.id))
+    .filter((j) => !appliedJobs.some((a) => {
+      const appJobId = a.job._id || a.job.id;
+      return appJobId === j.id || appJobId === j._id;
+    }))
     .slice(0, 3);
 
   const stats = {
@@ -41,6 +48,14 @@ export default function SeekerDashboard() {
     pending:  appliedJobs.filter((a) => a.status === "pending").length,
     reviewed: appliedJobs.filter((a) => a.status === "reviewed").length,
   };
+
+  if (loading) {
+    return (
+      <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
+        <p className="text-on-surface-variant dark:text-[#828796] italic">Loading applications…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background dark:bg-[#030813] min-h-screen text-on-surface dark:text-[#fbf9f4]">
@@ -134,11 +149,11 @@ export default function SeekerDashboard() {
               </div>
             ) : (
               <div className="divide-y divide-outline-variant/20 dark:divide-[#1a202c]">
-                {appliedJobs.map((app) => (
-                  <div key={app.jobId} className="py-5 flex items-start justify-between gap-4">
+                {appliedJobs.map((app, i) => (
+                  <div key={app._id || i} className="py-5 flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <Link
-                        to={`/jobs/${app.job.id}`}
+                        to={`/jobs/${app.job._id || app.job.id}`}
                         className="font-headline italic text-lg text-primary dark:text-[#fbf9f4] hover:text-secondary dark:hover:text-brass transition-colors"
                       >
                         {app.job.title}

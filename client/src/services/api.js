@@ -100,3 +100,56 @@ export const bookmarkApi = {
   /** Returns { bookmarked: boolean } */
   check: (jobId) => request(`/bookmarks/check/${jobId}`),
 };
+
+// ── Applications ───────────────────────────────────────────────────────────
+export const applicationApi = {
+  /** Submit an application. Sends multipart/form-data if resume file provided. */
+  apply: async ({ jobId, resumeUrl, coverLetter, resumeFile }) => {
+    if (resumeFile) {
+      // File upload via FormData
+      const formData = new FormData();
+      formData.append("jobId", jobId);
+      formData.append("resume", resumeFile);
+      if (coverLetter) formData.append("coverLetter", coverLetter);
+      if (resumeUrl) formData.append("resumeUrl", resumeUrl);
+
+      const t = getDevToken();
+      const headers = {};
+      if (t) headers["Authorization"] = `Bearer ${t}`;
+
+      const res = await fetch(`${BASE}/applications`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const error = new Error(err.error ?? `Request failed (${res.status})`);
+        error.status = res.status;
+        throw error;
+      }
+      return res.json();
+    }
+
+    // URL-only submission (no file)
+    return request("/applications", {
+      method: "POST",
+      body: { jobId, resumeUrl, coverLetter },
+    });
+  },
+
+  /** Get current user's applications. Returns { items, total, page, limit } */
+  getMy: (params = {}) =>
+    request(`/applications/my?${new URLSearchParams(params)}`),
+
+  /** Check if user already applied to a job. Returns { applied: boolean } */
+  check: (jobId) => request(`/applications/check/${jobId}`),
+
+  /** Get applications for a specific job (recruiter). Returns { items, total } */
+  getByJob: (jobId) => request(`/applications/job/${jobId}`),
+
+  /** Update application status. Returns updated application */
+  updateStatus: (id, status) =>
+    request(`/applications/${id}/status`, { method: "PATCH", body: { status } }),
+};

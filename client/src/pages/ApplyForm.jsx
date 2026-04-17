@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { applicationApi } from "../services/api";
 import mockJobs from "../services/mockJobs.json";
 
-const APPS_KEY     = "campus_careers_applications";
+const RECRUITER_JOBS_KEY = "campus_careers_recruiter_jobs";
 const PROFILE_KEY  = "campus_careers_profiles";
+
+function getLocalJobs() {
+  try {
+    return JSON.parse(localStorage.getItem(RECRUITER_JOBS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
 
 function getProfile(uid) {
   try {
@@ -15,26 +24,12 @@ function getProfile(uid) {
   }
 }
 
-function getApplications() {
-  try {
-    return JSON.parse(localStorage.getItem(APPS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveApplication(app) {
-  const all = getApplications();
-  all.push(app);
-  localStorage.setItem(APPS_KEY, JSON.stringify(all));
-}
-
 export default function ApplyForm() {
   const { id } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const job = mockJobs.find((j) => j.id === id);
+  const job = [...mockJobs, ...getLocalJobs()].find((j) => j.id === id);
 
   const profile = currentUser ? getProfile(currentUser.uid) : {};
 
@@ -42,15 +37,20 @@ export default function ApplyForm() {
     resumeUrl:   profile.resumeUrl || "",
     coverLetter: "",
   });
+  const [resumeFile, setResumeFile] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const [error,     setError]     = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
 
-  // Guard: already applied?
-  const alreadyApplied = currentUser
-    ? getApplications().some(
-        (a) => a.jobId === id && a.applicantId === currentUser.uid
-      )
-    : false;
+  // Check if already applied via API
+  useEffect(() => {
+    if (currentUser && id) {
+      applicationApi.check(id).then((res) => {
+        if (res.applied) setAlreadyApplied(true);
+      }).catch(() => {});
+    }
+  }, [currentUser, id]);
 
   if (!job) {
     return (
@@ -87,11 +87,17 @@ export default function ApplyForm() {
     setError("");
   }
 
-  function handleSubmit(e) {
+  function handleFileChange(e) {
+    const file = e.target.files?.[0] || null;
+    setResumeFile(file);
+    setError("");
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
 
-    if (!form.resumeUrl.trim()) {
-      setError("Please provide a link to your CV.");
+    if (!form.resumeUrl.trim() && !resumeFile) {
+      setError("Please provide a CV link or upload a file.");
       return;
     }
 
@@ -100,16 +106,20 @@ export default function ApplyForm() {
       return;
     }
 
-    saveApplication({
-      jobId:       job.id,
-      applicantId: currentUser.uid,
-      dateApplied: new Date().toISOString(),
-      resumeUrl:   form.resumeUrl,
-      coverLetter: form.coverLetter,
-      status:      "pending",
-    });
-
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      await applicationApi.apply({
+        jobId: job.id,
+        resumeUrl: form.resumeUrl,
+        coverLetter: form.coverLetter,
+        resumeFile,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || "Failed to submit application.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -213,6 +223,22 @@ export default function ApplyForm() {
                 <p className="mt-2 text-[11px] text-on-surface-variant dark:text-[#45474c]">
                   Google Drive, Dropbox, or institutional repository links accepted.
                 </p>
+                <div className="mt-4">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass block mb-2">
+                    Or Upload Resume (PDF/Word, max 5MB)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="text-[13px] text-on-surface-variant dark:text-[#828796] file:mr-4 file:py-2 file:px-4 file:border file:border-outline-variant/30 dark:file:border-[#1a202c] file:text-[11px] file:font-bold file:uppercase file:tracking-widest file:bg-surface-container-low dark:file:bg-[#0d1829] file:text-primary dark:file:text-[#fbf9f4] file:cursor-pointer"
+                  />
+                  {resumeFile && (
+                    <p className="mt-1 text-[11px] text-secondary dark:text-brass">
+                      Selected: {resumeFile.name}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -280,10 +306,10 @@ export default function ApplyForm() {
             </button>
             <button
               type="submit"
-              disabled={alreadyApplied}
+              disabled={alreadyApplied || submitting}
               className="bg-primary dark:bg-[#fbf9f4] text-on-primary dark:text-[#030813] px-10 py-3.5 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity disabled:opacity-40"
             >
-              Submit Application
+              {submitting ? "Submitting…" : "Submit Application"}
             </button>
           </div>
         </form>
