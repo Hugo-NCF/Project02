@@ -1,5 +1,5 @@
-import { useState } from "react";
-import mockUsers from "../services/mockUsers.json";
+import { useState, useEffect, useCallback } from "react";
+import { adminApi } from "../services/api";
 
 const ROLES = ["all", "admin", "recruiter", "seeker"];
 
@@ -12,23 +12,70 @@ function roleBadge(role) {
   return map[role] || map.seeker;
 }
 
+function recruiterStatusBadge(status) {
+  if (!status || status === "approved") return null;
+  const map = {
+    pending:  "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    rejected: "bg-error-container text-on-error-container dark:bg-error/20 dark:text-error",
+  };
+  return map[status];
+}
+
 export default function AdminUsers() {
-  const [query,  setQuery]  = useState("");
-  const [filter, setFilter] = useState("all");
-  const [users,  setUsers]  = useState(mockUsers);
+  const [users,   setUsers]   = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+  const [query,   setQuery]   = useState("");
+  const [filter,  setFilter]  = useState("all");
 
-  const filtered = users.filter((u) => {
-    const matchRole  = filter === "all" || u.role === filter;
-    const matchQuery =
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.email.toLowerCase().includes(query.toLowerCase());
-    return matchRole && matchQuery;
-  });
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = { limit: 100 };
+      if (filter !== "all") params.role = filter;
+      if (query.trim()) params.q = query.trim();
+      const data = await adminApi.getUsers(params);
+      setUsers(data.items);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, query]);
 
-  function toggleDisable(id) {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, isDisabled: !u.isDisabled } : u))
-    );
+  useEffect(() => {
+    const id = setTimeout(fetchUsers, 300);
+    return () => clearTimeout(id);
+  }, [fetchUsers]);
+
+  async function toggleDisable(user) {
+    try {
+      const updated = await adminApi.updateUser(user._id, { isDisabled: !user.isDisabled });
+      setUsers((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+    } catch (err) {
+      console.error("Failed to update user:", err.message);
+    }
+  }
+
+  async function handleApprove(user) {
+    try {
+      const updated = await adminApi.approveRecruiter(user._id);
+      setUsers((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+    } catch (err) {
+      console.error("Failed to approve recruiter:", err.message);
+    }
+  }
+
+  async function handleReject(user) {
+    try {
+      const updated = await adminApi.rejectRecruiter(user._id);
+      setUsers((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+    } catch (err) {
+      console.error("Failed to reject recruiter:", err.message);
+    }
   }
 
   const adminCount     = users.filter((u) => u.role === "admin").length;
@@ -67,7 +114,7 @@ export default function AdminUsers() {
               {label}
             </span>
             <span className="font-headline text-3xl font-bold text-primary dark:text-[#fbf9f4]">
-              {value}
+              {loading ? "—" : value}
             </span>
           </div>
         ))}
@@ -110,20 +157,27 @@ export default function AdminUsers() {
 
         {/* Results count */}
         <p className="text-[11px] uppercase tracking-widest text-on-surface-variant dark:text-[#828796] mb-4">
-          Showing {filtered.length} of {users.length} accounts
+          {loading ? "Loading…" : `Showing ${users.length} of ${total} accounts`}
         </p>
 
+        {/* Error */}
+        {error && (
+          <div className="py-6 text-center text-error text-sm italic">{error}</div>
+        )}
+
         {/* Table header */}
-        <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-4 px-4 pb-3 border-b border-outline-variant/50 dark:border-[#1a202c]">
-          {["Name", "Email", "Role", "Joined", "Status"].map((h) => (
-            <span key={h} className="text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">
-              {h}
-            </span>
-          ))}
-        </div>
+        {!loading && !error && (
+          <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_auto_auto] gap-4 px-4 pb-3 border-b border-outline-variant/50 dark:border-[#1a202c]">
+            {["Name", "Email", "Role", "Joined", "Approval", "Status"].map((h) => (
+              <span key={h} className="text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">
+                {h}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Rows */}
-        {filtered.length === 0 ? (
+        {!loading && !error && users.length === 0 ? (
           <div className="py-16 text-center">
             <span className="material-symbols-outlined text-[48px] text-on-surface-variant/30 dark:text-[#1a202c] block mb-3">
               manage_search
@@ -134,55 +188,89 @@ export default function AdminUsers() {
           </div>
         ) : (
           <div>
-            {filtered.map((user) => (
-              <div
-                key={user.id}
-                className={`grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_auto] gap-4 items-center px-4 py-5 border-b border-outline-variant/20 dark:border-[#1a202c] hover:bg-surface-container-low dark:hover:bg-[#0d1829] transition-colors duration-150 ${
-                  user.isDisabled ? "opacity-50" : ""
-                }`}
-              >
-                {/* Name */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-primary dark:bg-[#1a202c] flex items-center justify-center text-on-primary dark:text-[#fbf9f4] text-[13px] font-bold flex-shrink-0">
-                    {user.name.charAt(0)}
-                  </div>
-                  <span className="font-headline text-[15px] text-primary dark:text-[#fbf9f4] leading-tight">
-                    {user.name}
-                  </span>
-                </div>
+            {users.map((user) => {
+              const statusBadge = user.role === "recruiter"
+                ? recruiterStatusBadge(user.recruiterStatus)
+                : null;
 
-                {/* Email */}
-                <span className="text-sm text-on-surface-variant dark:text-[#828796] italic truncate">
-                  {user.email}
-                </span>
-
-                {/* Role */}
-                <span
-                  className={`inline-flex self-start md:self-center px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${roleBadge(user.role)}`}
-                >
-                  {user.role}
-                </span>
-
-                {/* Joined */}
-                <span className="text-[12px] text-on-surface-variant dark:text-[#45474c]">
-                  {user.createdAt}
-                </span>
-
-                {/* Toggle */}
-                <button
-                  onClick={() => toggleDisable(user.id)}
-                  disabled={user.role === "admin"}
-                  title={user.isDisabled ? "Enable account" : "Suspend account"}
-                  className={`px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-                    user.isDisabled
-                      ? "bg-green-700 text-white hover:bg-green-800"
-                      : "bg-error text-white hover:bg-error/80"
+              return (
+                <div
+                  key={user._id}
+                  className={`grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_auto_auto] gap-4 items-center px-4 py-5 border-b border-outline-variant/20 dark:border-[#1a202c] hover:bg-surface-container-low dark:hover:bg-[#0d1829] transition-colors duration-150 ${
+                    user.isDisabled ? "opacity-50" : ""
                   }`}
                 >
-                  {user.isDisabled ? "Enable" : "Suspend"}
-                </button>
-              </div>
-            ))}
+                  {/* Name */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-primary dark:bg-[#1a202c] flex items-center justify-center text-on-primary dark:text-[#fbf9f4] text-[13px] font-bold flex-shrink-0">
+                      {user.name.charAt(0)}
+                    </div>
+                    <span className="font-headline text-[15px] text-primary dark:text-[#fbf9f4] leading-tight">
+                      {user.name}
+                    </span>
+                  </div>
+
+                  {/* Email */}
+                  <span className="text-sm text-on-surface-variant dark:text-[#828796] italic truncate">
+                    {user.email}
+                  </span>
+
+                  {/* Role */}
+                  <span
+                    className={`inline-flex self-start md:self-center px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${roleBadge(user.role)}`}
+                  >
+                    {user.role}
+                  </span>
+
+                  {/* Joined */}
+                  <span className="text-[12px] text-on-surface-variant dark:text-[#45474c]">
+                    {new Date(user.createdAt).toLocaleDateString("en-US", {
+                      month: "short", day: "numeric", year: "numeric",
+                    })}
+                  </span>
+
+                  {/* Recruiter approval */}
+                  <div className="flex items-center gap-2">
+                    {user.role === "recruiter" && user.recruiterStatus === "pending" ? (
+                      <>
+                        <button
+                          onClick={() => handleApprove(user)}
+                          className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-green-700 text-white hover:bg-green-800 transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleReject(user)}
+                          className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold bg-error text-white hover:bg-error/80 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : statusBadge ? (
+                      <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${statusBadge}`}>
+                        {user.recruiterStatus}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-on-surface-variant/30 dark:text-[#1a202c]">—</span>
+                    )}
+                  </div>
+
+                  {/* Suspend toggle */}
+                  <button
+                    onClick={() => toggleDisable(user)}
+                    disabled={user.role === "admin"}
+                    title={user.isDisabled ? "Enable account" : "Suspend account"}
+                    className={`px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                      user.isDisabled
+                        ? "bg-green-700 text-white hover:bg-green-800"
+                        : "bg-error text-white hover:bg-error/80"
+                    }`}
+                  >
+                    {user.isDisabled ? "Enable" : "Suspend"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

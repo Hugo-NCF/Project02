@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import mockUsers from "../services/mockUsers.json";
-import mockJobs from "../services/mockJobs.json";
-import mockNotifications from "../services/mockNotifications.json";
+import { adminApi, notificationApi } from "../services/api";
 
 /* ── Stat Card ──────────────────────────────────────────── */
 function StatCard({ label, value, trend, trendUp, accent = "secondary" }) {
@@ -26,7 +24,7 @@ function StatCard({ label, value, trend, trendUp, accent = "secondary" }) {
         {label}
       </span>
       <span className={`block font-headline text-4xl font-bold ${valueColor}`}>
-        {value}
+        {value ?? "—"}
       </span>
       {trend && (
         <span
@@ -94,6 +92,17 @@ function ModerationItem({ label, body }) {
 /* ── Dashboard ──────────────────────────────────────────── */
 export default function AdminDashboard() {
   const { currentUser } = useAuth();
+
+  const [stats, setStats] = useState({
+    totalUsers: null,
+    totalJobs: null,
+    activeJobs: null,
+    flagged: null,
+    seekers: null,
+    recruiters: null,
+    pendingRecruiters: null,
+  });
+
   const [partners] = useState([
     { name: "Stanford University", active: true },
     { name: "Yale University", active: true },
@@ -101,12 +110,36 @@ export default function AdminDashboard() {
     { name: "MIT", active: false },
   ]);
 
-  const totalUsers = mockUsers.length;
-  const totalJobs  = mockJobs.length;
-  const activeJobs = mockJobs.filter((j) => j.status === "active").length;
-  const flagged    = mockNotifications.filter((n) => n.type === "flag" && !n.read).length;
-  const seekers    = mockUsers.filter((u) => u.role === "seeker").length;
-  const recruiters = mockUsers.filter((u) => u.role === "recruiter").length;
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const [usersRes, jobsRes, activeJobsRes, flaggedRes, seekersRes, recruitersRes, pendingRes] =
+          await Promise.all([
+            adminApi.getUsers({ limit: 1 }),
+            adminApi.getJobs({ limit: 1 }),
+            adminApi.getJobs({ status: "active", limit: 1 }),
+            notificationApi.getAll({ type: "flag", read: "false", limit: 1 }),
+            adminApi.getUsers({ role: "seeker", limit: 1 }),
+            adminApi.getUsers({ role: "recruiter", limit: 1 }),
+            adminApi.getPendingRecruiters(),
+          ]);
+
+        setStats({
+          totalUsers: usersRes.total,
+          totalJobs: jobsRes.total,
+          activeJobs: activeJobsRes.total,
+          flagged: flaggedRes.total,
+          seekers: seekersRes.total,
+          recruiters: recruitersRes.total,
+          pendingRecruiters: pendingRes.length,
+        });
+      } catch (err) {
+        console.warn("Dashboard stats fetch failed:", err.message);
+      }
+    }
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="px-8 py-10 max-w-screen-xl mx-auto">
@@ -125,10 +158,10 @@ export default function AdminDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-12">
-        <StatCard label="Total Users"        value={totalUsers} trend="+2 this week"       trendUp={true}  />
-        <StatCard label="Job Postings"        value={totalJobs}  trend="+1 this week"       trendUp={true}  />
-        <StatCard label="Active Listings"     value={activeJobs} trend="Steady fill rate"   trendUp={null}  />
-        <StatCard label="Flagged Items"       value={flagged}    trend="Action required"    trendUp={false} accent="error" />
+        <StatCard label="Total Users"    value={stats.totalUsers} trend="+2 this week"    trendUp={true}  />
+        <StatCard label="Job Postings"   value={stats.totalJobs}  trend="+1 this week"    trendUp={true}  />
+        <StatCard label="Active Listings" value={stats.activeJobs} trend="Steady fill rate" trendUp={null} />
+        <StatCard label="Flagged Items"  value={stats.flagged}    trend="Action required" trendUp={false} accent="error" />
       </div>
 
       {/* Bento layout */}
@@ -183,7 +216,7 @@ export default function AdminDashboard() {
                   <span className="block text-[10px] uppercase tracking-widest text-on-primary-container mb-2">
                     Job Seekers
                   </span>
-                  <span className="text-5xl font-headline font-bold">{seekers}</span>
+                  <span className="text-5xl font-headline font-bold">{stats.seekers ?? "—"}</span>
                   <p className="text-xs mt-4 text-on-primary-container leading-relaxed">
                     Active candidates searching for academic positions.
                   </p>
@@ -192,8 +225,13 @@ export default function AdminDashboard() {
                   <span className="block text-[10px] uppercase tracking-widest text-on-primary-container mb-2">
                     Recruiters
                   </span>
-                  <span className="text-5xl font-headline font-bold">{recruiters}</span>
-                  <p className="text-xs mt-4 text-on-primary-container leading-relaxed">
+                  <span className="text-5xl font-headline font-bold">{stats.recruiters ?? "—"}</span>
+                  {stats.pendingRecruiters > 0 && (
+                    <p className="text-xs mt-2 text-amber-300">
+                      {stats.pendingRecruiters} awaiting approval
+                    </p>
+                  )}
+                  <p className="text-xs mt-2 text-on-primary-container leading-relaxed">
                     Institutional partners with posting privileges.
                   </p>
                 </div>

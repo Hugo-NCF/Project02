@@ -1,48 +1,84 @@
-import { useState } from "react";
-import mockNotifications from "../services/mockNotifications.json";
+import { useState, useEffect } from "react";
+import { notificationApi } from "../services/api";
 
-const TYPES = ["all", "flag", "new_user", "new_job", "application", "system"];
+const TYPES = ["all", "flag", "new_user", "new_job", "application", "system", "recruiter_approval"];
 
 const TYPE_META = {
-  flag:        { label: "Flag",        badge: "bg-error-container text-on-error-container dark:bg-error/20 dark:text-error"                    },
-  new_user:    { label: "New User",    badge: "bg-secondary-container text-secondary dark:bg-[#1a202c] dark:text-brass"                        },
-  new_job:     { label: "New Job",     badge: "bg-surface-container-highest dark:bg-[#0d1829] text-on-surface-variant dark:text-[#828796]"     },
-  application: { label: "Application", badge: "bg-primary/10 dark:bg-[#1a202c] text-primary dark:text-[#fbf9f4]"                               },
-  system:      { label: "System",      badge: "bg-outline-variant/30 dark:bg-[#1a202c] text-on-surface-variant dark:text-[#828796]"            },
+  flag:               { label: "Flag",               badge: "bg-error-container text-on-error-container dark:bg-error/20 dark:text-error"                    },
+  new_user:           { label: "New User",            badge: "bg-secondary-container text-secondary dark:bg-[#1a202c] dark:text-brass"                        },
+  new_job:            { label: "New Job",             badge: "bg-surface-container-highest dark:bg-[#0d1829] text-on-surface-variant dark:text-[#828796]"     },
+  application:        { label: "Application",         badge: "bg-primary/10 dark:bg-[#1a202c] text-primary dark:text-[#fbf9f4]"                               },
+  system:             { label: "System",              badge: "bg-outline-variant/30 dark:bg-[#1a202c] text-on-surface-variant dark:text-[#828796]"            },
+  recruiter_approval: { label: "Recruiter Approval",  badge: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"                           },
 };
 
 function formatTime(iso) {
   const d = new Date(iso);
   const now = new Date();
   const diff = Math.floor((now - d) / 1000);
-  if (diff < 60)  return "Just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 60)    return "Just now";
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function AdminNotifications() {
-  const [items,  setItems]  = useState(mockNotifications);
-  const [filter, setFilter] = useState("all");
+  const [items,   setItems]   = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+  const [filter,  setFilter]  = useState("all");
+
+  async function fetchNotifications(type = filter) {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = { limit: 100 };
+      if (type !== "all") params.type = type;
+      const data = await notificationApi.getAll(params);
+      setItems(data.items);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchNotifications(filter);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function markRead(id) {
+    try {
+      const updated = await notificationApi.markRead(id);
+      setItems((prev) => prev.map((n) => (n._id === id ? updated : n)));
+    } catch (err) {
+      console.error("Failed to mark read:", err.message);
+    }
+  }
+
+  async function dismiss(id) {
+    try {
+      await notificationApi.dismiss(id);
+      setItems((prev) => prev.filter((n) => n._id !== id));
+      setTotal((t) => t - 1);
+    } catch (err) {
+      console.error("Failed to dismiss:", err.message);
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      await notificationApi.markAllRead();
+      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error("Failed to mark all read:", err.message);
+    }
+  }
 
   const unreadCount = items.filter((n) => !n.read).length;
   const flagCount   = items.filter((n) => n.type === "flag").length;
-
-  const filtered = items.filter(
-    (n) => filter === "all" || n.type === filter
-  );
-
-  function markRead(id) {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }
-
-  function dismiss(id) {
-    setItems((prev) => prev.filter((n) => n.id !== id));
-  }
-
-  function markAllRead() {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-  }
 
   return (
     <div className="px-8 py-10 max-w-screen-xl mx-auto">
@@ -62,9 +98,9 @@ export default function AdminNotifications() {
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
         {[
-          { label: "Total Notices",  value: items.length,  accent: "border-secondary" },
-          { label: "Unread",         value: unreadCount,   accent: "border-brass"     },
-          { label: "Active Flags",   value: flagCount,     accent: "border-error"     },
+          { label: "Total Notices", value: loading ? "—" : total,       accent: "border-secondary" },
+          { label: "Unread",        value: loading ? "—" : unreadCount, accent: "border-brass"     },
+          { label: "Active Flags",  value: loading ? "—" : flagCount,   accent: "border-error"     },
         ].map(({ label, value, accent }) => (
           <div
             key={label}
@@ -95,7 +131,7 @@ export default function AdminNotifications() {
                     : "border border-outline-variant dark:border-[#1a202c] text-on-surface-variant dark:text-[#828796] hover:border-secondary dark:hover:border-brass hover:text-secondary dark:hover:text-brass"
                 }`}
               >
-                {t === "new_user" ? "New User" : t === "new_job" ? "New Job" : t}
+                {t === "new_user" ? "New User" : t === "new_job" ? "New Job" : t === "recruiter_approval" ? "Approval" : t}
               </button>
             ))}
           </div>
@@ -113,28 +149,33 @@ export default function AdminNotifications() {
 
         {/* Result count */}
         <p className="text-[11px] uppercase tracking-widest text-on-surface-variant dark:text-[#828796] mb-4">
-          Showing {filtered.length} of {items.length} notices
+          {loading ? "Loading…" : `Showing ${items.length} of ${total} notices`}
         </p>
 
+        {/* Error */}
+        {error && (
+          <div className="py-6 text-center text-error text-sm italic">{error}</div>
+        )}
+
         {/* List */}
-        {filtered.length === 0 ? (
+        {!loading && !error && items.length === 0 ? (
           <div className="py-16 text-center">
             <span className="material-symbols-outlined text-[48px] text-on-surface-variant/30 dark:text-[#1a202c] block mb-3">
               notifications_off
             </span>
             <p className="italic text-on-surface-variant dark:text-[#828796]">
-              {items.length === 0
+              {total === 0
                 ? "All notices have been dismissed."
                 : "No notices match this filter."}
             </p>
           </div>
         ) : (
           <div>
-            {filtered.map((n) => {
+            {items.map((n) => {
               const meta = TYPE_META[n.type] || TYPE_META.system;
               return (
                 <div
-                  key={n.id}
+                  key={n._id}
                   className={`group flex items-start gap-5 py-6 border-b border-outline-variant/20 dark:border-[#1a202c] -mx-8 px-8 transition-colors duration-150 hover:bg-surface-container-low dark:hover:bg-[#0d1829] ${
                     n.read ? "opacity-60" : ""
                   }`}
@@ -167,7 +208,7 @@ export default function AdminNotifications() {
                       {n.body}
                     </p>
                     <span className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 dark:text-[#45474c] mt-2 block">
-                      {formatTime(n.timestamp)}
+                      {formatTime(n.createdAt)}
                     </span>
                   </div>
 
@@ -175,7 +216,7 @@ export default function AdminNotifications() {
                   <div className="flex-shrink-0 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                     {!n.read && (
                       <button
-                        onClick={() => markRead(n.id)}
+                        onClick={() => markRead(n._id)}
                         title="Mark as read"
                         className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold border border-outline-variant dark:border-[#1a202c] text-on-surface dark:text-[#fbf9f4] hover:border-secondary dark:hover:border-brass hover:text-secondary dark:hover:text-brass transition-colors"
                       >
@@ -183,7 +224,7 @@ export default function AdminNotifications() {
                       </button>
                     )}
                     <button
-                      onClick={() => dismiss(n.id)}
+                      onClick={() => dismiss(n._id)}
                       title="Dismiss"
                       className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-error text-white hover:bg-error/80 transition-colors"
                     >

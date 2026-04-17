@@ -52,3 +52,5 @@ server/uploads/
 # Misc
 *.pem
 coverage/
+server/.env.example
+server/.env.example

@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Recruiter approval flow — set to "pending" when creating recruiter accounts
+    recruiterStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "approved",
+    },
   },
   { timestamps: true }
 );

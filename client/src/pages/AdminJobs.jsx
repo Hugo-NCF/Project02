@@ -1,5 +1,5 @@
-import { useState } from "react";
-import mockJobs from "../services/mockJobs.json";
+import { useState, useEffect, useCallback } from "react";
+import { adminApi } from "../services/api";
 
 const STATUSES = ["all", "active", "closed"];
 
@@ -10,27 +10,43 @@ const CATEGORY_COLORS = {
 };
 
 export default function AdminJobs() {
-  const [query,  setQuery]  = useState("");
-  const [filter, setFilter] = useState("all");
-  const [jobs,   setJobs]   = useState(mockJobs);
+  const [jobs,    setJobs]    = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+  const [query,   setQuery]   = useState("");
+  const [filter,  setFilter]  = useState("all");
 
-  const filtered = jobs.filter((j) => {
-    const matchStatus = filter === "all" || j.status === filter;
-    const matchQuery  =
-      j.title.toLowerCase().includes(query.toLowerCase()) ||
-      j.institution.toLowerCase().includes(query.toLowerCase()) ||
-      j.category.toLowerCase().includes(query.toLowerCase());
-    return matchStatus && matchQuery;
-  });
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = { limit: 100 };
+      if (filter !== "all") params.status = filter;
+      if (query.trim()) params.q = query.trim();
+      const data = await adminApi.getJobs(params);
+      setJobs(data.items);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, query]);
 
-  function toggleStatus(id) {
-    setJobs((prev) =>
-      prev.map((j) =>
-        j.id === id
-          ? { ...j, status: j.status === "active" ? "closed" : "active" }
-          : j
-      )
-    );
+  useEffect(() => {
+    const id = setTimeout(fetchJobs, 300);
+    return () => clearTimeout(id);
+  }, [fetchJobs]);
+
+  async function toggleStatus(job) {
+    const newStatus = job.status === "active" ? "closed" : "active";
+    try {
+      const updated = await adminApi.updateJob(job._id, { status: newStatus });
+      setJobs((prev) => prev.map((j) => (j._id === updated._id ? updated : j)));
+    } catch (err) {
+      console.error("Failed to update job:", err.message);
+    }
   }
 
   const activeCount = jobs.filter((j) => j.status === "active").length;
@@ -54,9 +70,9 @@ export default function AdminJobs() {
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
         {[
-          { label: "Total Listings", value: jobs.length,   accent: "border-secondary" },
-          { label: "Active",         value: activeCount,   accent: "border-green-600" },
-          { label: "Closed",         value: closedCount,   accent: "border-error"     },
+          { label: "Total Listings", value: loading ? "—" : total,       accent: "border-secondary" },
+          { label: "Active",         value: loading ? "—" : activeCount, accent: "border-green-600" },
+          { label: "Closed",         value: loading ? "—" : closedCount, accent: "border-error"     },
         ].map(({ label, value, accent }) => (
           <div
             key={label}
@@ -106,10 +122,15 @@ export default function AdminJobs() {
         </div>
 
         <p className="text-[11px] uppercase tracking-widest text-on-surface-variant dark:text-[#828796] mb-4">
-          Showing {filtered.length} of {jobs.length} listings
+          {loading ? "Loading…" : `Showing ${jobs.length} of ${total} listings`}
         </p>
 
-        {filtered.length === 0 ? (
+        {/* Error */}
+        {error && (
+          <div className="py-6 text-center text-error text-sm italic">{error}</div>
+        )}
+
+        {!loading && !error && jobs.length === 0 ? (
           <div className="py-16 text-center">
             <span className="material-symbols-outlined text-[48px] text-on-surface-variant/30 dark:text-[#1a202c] block mb-3">
               work_off
@@ -120,9 +141,9 @@ export default function AdminJobs() {
           </div>
         ) : (
           <div>
-            {filtered.map((job) => (
+            {jobs.map((job) => (
               <div
-                key={job.id}
+                key={job._id}
                 className="flex flex-col md:flex-row md:items-center gap-4 py-6 border-b border-outline-variant/20 dark:border-[#1a202c] hover:bg-surface-container-low dark:hover:bg-[#0d1829] transition-colors duration-150 -mx-8 px-8"
               >
                 {/* Status line */}
@@ -150,8 +171,12 @@ export default function AdminJobs() {
                     {job.institution} &nbsp;·&nbsp; {job.location}
                   </p>
                   <p className="text-[12px] text-on-surface-variant dark:text-[#45474c] mt-1">
-                    ${job.salaryMin.toLocaleString()} – ${job.salaryMax.toLocaleString()}
-                    &nbsp;·&nbsp; Deadline: {job.deadline}
+                    {job.salaryMin != null && job.salaryMax != null
+                      ? `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()} · `
+                      : ""}
+                    {job.deadline
+                      ? `Deadline: ${new Date(job.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                      : "No deadline set"}
                   </p>
                 </div>
 
@@ -167,7 +192,7 @@ export default function AdminJobs() {
                     {job.status}
                   </span>
                   <button
-                    onClick={() => toggleStatus(job.id)}
+                    onClick={() => toggleStatus(job)}
                     title={job.status === "active" ? "Close listing" : "Reactivate listing"}
                     className="p-2 text-on-surface-variant dark:text-[#828796] hover:text-secondary dark:hover:text-brass transition-colors"
                   >
