@@ -41,7 +41,10 @@ const CATEGORY_BADGE = {
 export default function RecruiterDashboard() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("live");
-  const [jobs, setJobs] = useState(() => [...mockJobs, ...getLocalJobs()]);
+  const [jobs, setJobs] = useState(() => {
+    const all = [...mockJobs, ...getLocalJobs()];
+    return all.filter((j) => j.recruiterId === currentUser?.uid);
+  });
 
   const activeJobs = jobs.filter((j) => j.status === "active");
   const closedJobs = jobs.filter((j) => j.status === "closed");

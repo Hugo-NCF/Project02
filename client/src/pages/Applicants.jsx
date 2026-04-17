@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import mockJobs from "../services/mockJobs.json";
 import mockUsers from "../services/mockUsers.json";
 
@@ -32,14 +33,18 @@ export default function Applicants() {
   const { id } = useParams();
   const allJobs = [...mockJobs, ...getLocalJobs()];
   const job = allJobs.find((j) => j.id === id);
+
+  // Block access if this job doesn't belong to the current recruiter
+  const { currentUser } = useAuth();
+  const isOwner = job && job.recruiterId === currentUser?.uid;
   const applications = getApplications().filter((a) => a.jobId === id);
 
-  if (!job) {
+  if (!job || !isOwner) {
     return (
       <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
         <div className="text-center">
           <span className="font-headline italic text-3xl text-on-surface-variant dark:text-[#45474c]">
-            Position not found.
+            {!job ? "Position not found." : "You don't have access to this posting."}
           </span>
           <Link to="/recruiter" className="mt-6 block text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass hover:underline">
             ← Back to Dashboard
