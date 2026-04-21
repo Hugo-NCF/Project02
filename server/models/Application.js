@@ -21,6 +21,10 @@ const applicationSchema = new mongoose.Schema(
       type: String,
       maxlength: [5000, "Cover letter is too long"],
     },
+    coverLetterUrl: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       enum: {

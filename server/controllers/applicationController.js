@@ -28,19 +28,25 @@ async function createApplication(req, res, next) {
     }
 
     // If file was uploaded via multer, use that path
-    const finalResumeUrl = req.file
-      ? `/uploads/${req.file.filename}`
-      : resumeUrl;
+    const resumeFile = req.files?.resume?.[0];
+    const coverLetterFile = req.files?.coverLetterFile?.[0];
+
+    const finalResumeUrl = resumeFile ? `/uploads/${resumeFile.filename}` : resumeUrl;
 
     if (!finalResumeUrl) {
       return res.status(400).json({ error: "Resume is required" });
     }
+
+    const finalCoverLetterUrl = coverLetterFile
+      ? `/uploads/${coverLetterFile.filename}`
+      : undefined;
 
     const application = await Application.create({
       jobId,
       applicantId: req.user.uid,
       resumeUrl: finalResumeUrl,
       coverLetter,
+      ...(finalCoverLetterUrl && { coverLetterUrl: finalCoverLetterUrl }),
     });
 
     res.status(201).json(application);
