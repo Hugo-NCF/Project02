@@ -1,19 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { applicationApi } from "../services/api";
-import mockJobs from "../services/mockJobs.json";
+import { applicationApi, jobApi } from "../services/api";
 
-const RECRUITER_JOBS_KEY = "campus_careers_recruiter_jobs";
-const PROFILE_KEY  = "campus_careers_profiles";
-
-function getLocalJobs() {
-  try {
-    return JSON.parse(localStorage.getItem(RECRUITER_JOBS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
+const PROFILE_KEY = "campus_careers_profiles";
 
 function getProfile(uid) {
   try {
@@ -29,7 +19,9 @@ export default function ApplyForm() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const job = [...mockJobs, ...getLocalJobs()].find((j) => j.id === id);
+  const [job,     setJob]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [jobError, setJobError] = useState(null);
 
   const profile = currentUser ? getProfile(currentUser.uid) : {};
 
@@ -37,13 +29,21 @@ export default function ApplyForm() {
     resumeUrl:   profile.resumeUrl || "",
     coverLetter: "",
   });
-  const [resumeFile, setResumeFile] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [resumeFile,       setResumeFile]       = useState(null);
+  const [coverLetterFile,  setCoverLetterFile]  = useState(null);
+  const [submitted,     setSubmitted]     = useState(false);
+  const [submitting,    setSubmitting]    = useState(false);
+  const [error,         setError]         = useState("");
   const [alreadyApplied, setAlreadyApplied] = useState(false);
 
-  // Check if already applied via API
+  useEffect(() => {
+    setLoading(true);
+    jobApi.getById(id)
+      .then(setJob)
+      .catch((err) => setJobError(err.status === 404 ? "not_found" : err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
   useEffect(() => {
     if (currentUser && id) {
       applicationApi.check(id).then((res) => {
@@ -52,7 +52,17 @@ export default function ApplyForm() {
     }
   }, [currentUser, id]);
 
-  if (!job) {
+  if (loading) {
+    return (
+      <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
+        <span className="font-headline italic text-2xl text-on-surface-variant dark:text-[#45474c]">
+          Loading…
+        </span>
+      </div>
+    );
+  }
+
+  if (jobError || !job) {
     return (
       <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -93,6 +103,12 @@ export default function ApplyForm() {
     setError("");
   }
 
+  function handleCoverLetterFileChange(e) {
+    const file = e.target.files?.[0] || null;
+    setCoverLetterFile(file);
+    setError("");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -109,10 +125,11 @@ export default function ApplyForm() {
     setSubmitting(true);
     try {
       await applicationApi.apply({
-        jobId: job.id,
+        jobId: job._id,
         resumeUrl: form.resumeUrl,
         coverLetter: form.coverLetter,
         resumeFile,
+        coverLetterFile,
       });
       setSubmitted(true);
     } catch (err) {
@@ -165,7 +182,7 @@ export default function ApplyForm() {
             Browse Jobs
           </Link>
           <span>/</span>
-          <Link to={`/jobs/${job.id}`} className="hover:text-secondary dark:hover:text-brass transition-colors">
+          <Link to={`/jobs/${job._id}`} className="hover:text-secondary dark:hover:text-brass transition-colors">
             {job.title}
           </Link>
           <span>/</span>
@@ -268,6 +285,22 @@ export default function ApplyForm() {
                 <p className="mt-2 text-[11px] text-on-surface-variant dark:text-[#45474c]">
                   {form.coverLetter.length} characters
                 </p>
+                <div className="mt-4">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass block mb-2">
+                    Or Upload Cover Letter (PDF/Word, max 5MB)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleCoverLetterFileChange}
+                    className="text-[13px] text-on-surface-variant dark:text-[#828796] file:mr-4 file:py-2 file:px-4 file:border file:border-outline-variant/30 dark:file:border-[#1a202c] file:text-[11px] file:font-bold file:uppercase file:tracking-widest file:bg-surface-container-low dark:file:bg-[#0d1829] file:text-primary dark:file:text-[#fbf9f4] file:cursor-pointer"
+                  />
+                  {coverLetterFile && (
+                    <p className="mt-1 text-[11px] text-secondary dark:text-brass">
+                      Selected: {coverLetterFile.name}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -299,7 +332,7 @@ export default function ApplyForm() {
           <div className="flex items-center justify-between pt-2">
             <button
               type="button"
-              onClick={() => navigate(`/jobs/${job.id}`)}
+              onClick={() => navigate(`/jobs/${job._id}`)}
               className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant dark:text-[#828796] hover:text-primary dark:hover:text-[#fbf9f4] transition-colors"
             >
               ← Cancel Application

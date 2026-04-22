@@ -1,6 +1,7 @@
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import mockJobs from "../services/mockJobs.json";
+import { jobApi } from "../services/api";
 
 const CATEGORY_STYLE = {
   Faculty:        "text-secondary dark:text-brass border-secondary dark:border-brass",
@@ -13,9 +14,30 @@ export default function JobDetail() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const job = mockJobs.find((j) => j.id === id);
+  const [job,     setJob]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
-  if (!job) {
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    jobApi.getById(id)
+      .then(setJob)
+      .catch((err) => setError(err.status === 404 ? "not_found" : err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
+        <span className="font-headline italic text-2xl text-on-surface-variant dark:text-[#45474c]">
+          Loading…
+        </span>
+      </div>
+    );
+  }
+
+  if (error || !job) {
     return (
       <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -34,19 +56,19 @@ export default function JobDetail() {
   }
 
   const isActive = job.status === "active";
-  const deadlineDate = new Date(job.deadline).toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-  });
-  const startDate = new Date(job.startDate).toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-  });
+  const deadlineDate = job.deadline
+    ? new Date(job.deadline).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : "—";
+  const startDate = job.startDate
+    ? new Date(job.startDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : "—";
 
   function handleApply() {
     if (!currentUser) {
       navigate("/login");
       return;
     }
-    navigate(`/jobs/${job.id}/apply`);
+    navigate(`/jobs/${job._id}/apply`);
   }
 
   return (
@@ -111,14 +133,16 @@ export default function JobDetail() {
             </section>
 
             {/* Qualifications */}
-            <section className="mb-10">
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-secondary dark:text-brass">
-                Essential Qualifications
-              </span>
-              <p className="mt-4 text-[15px] leading-relaxed text-on-surface dark:text-[#c8cad3]">
-                {job.qualifications}
-              </p>
-            </section>
+            {job.qualifications && (
+              <section className="mb-10">
+                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-secondary dark:text-brass">
+                  Essential Qualifications
+                </span>
+                <p className="mt-4 text-[15px] leading-relaxed text-on-surface dark:text-[#c8cad3]">
+                  {job.qualifications}
+                </p>
+              </section>
+            )}
 
             {/* Divider */}
             <div className="h-px bg-outline-variant/30 dark:bg-[#1a202c]" />
@@ -178,16 +202,18 @@ export default function JobDetail() {
                 </p>
 
                 {[
-                  { label: "Institution",  value: job.institution },
-                  { label: "Department",   value: job.department },
-                  { label: "Location",     value: job.location },
-                  { label: "Category",     value: job.category },
+                  { label: "Institution", value: job.institution },
+                  { label: "Department",  value: job.department },
+                  { label: "Location",    value: job.location },
+                  { label: "Category",    value: job.category },
                   {
                     label: "Salary Range",
-                    value: `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`,
+                    value: job.salaryMin && job.salaryMax
+                      ? `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`
+                      : "Not specified",
                   },
-                  { label: "Deadline",     value: deadlineDate },
-                  { label: "Start Date",   value: startDate },
+                  { label: "Deadline",   value: deadlineDate },
+                  { label: "Start Date", value: startDate },
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <span className="block text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">

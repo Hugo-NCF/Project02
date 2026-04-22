@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import mockJobs from "../services/mockJobs.json";
+import { jobApi } from "../services/api";
 
 const CATEGORIES = ["Faculty", "Research", "Administration", "Staff", "Postdoc", "Other"];
-const LOCATIONS   = [...new Set(mockJobs.map((j) => j.location))].sort();
-const PAGE_SIZE   = 5;
+const PAGE_SIZE = 5;
 
 const CATEGORY_STYLE = {
   Faculty:        "text-secondary dark:text-brass border-secondary dark:border-brass",
@@ -20,31 +19,40 @@ export default function Jobs() {
   const [sort,      setSort]      = useState("newest");
   const [page,      setPage]      = useState(1);
 
-  const filtered = useMemo(() => {
-    let jobs = [...mockJobs];
+  const [jobs,    setJobs]    = useState([]);
+  const [total,   setTotal]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
-    if (query) {
-      const q = query.toLowerCase();
-      jobs = jobs.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.institution.toLowerCase().includes(q) ||
-          j.description.toLowerCase().includes(q)
-      );
-    }
-    if (category)  jobs = jobs.filter((j) => j.category === category);
-    if (location)  jobs = jobs.filter((j) => j.location === location);
-    if (salaryMin) jobs = jobs.filter((j) => j.salaryMax >= parseInt(salaryMin, 10));
+  useEffect(() => {
+    // Debounce keyword input; fire immediately for other filter changes
+    const delay = query ? 400 : 0;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      const params = { page, limit: PAGE_SIZE };
+      if (query)    params.q        = query;
+      if (category) params.category = category;
+      if (location) params.location = location;
 
-    if (sort === "newest")   jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (sort === "salary")   jobs.sort((a, b) => b.salaryMax - a.salaryMax);
-    if (sort === "deadline") jobs.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+      jobApi.getAll(params)
+        .then(({ items, total }) => { setJobs(items); setTotal(total); })
+        .catch((err) => setError(err.message))
+        .finally(() => setLoading(false));
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [query, category, location, page]);
 
-    return jobs;
-  }, [query, category, location, salaryMin, sort]);
+  // salaryMin and sort are applied client-side on the current page
+  const displayed = [...jobs]
+    .filter((j) => !salaryMin || j.salaryMax >= parseInt(salaryMin, 10))
+    .sort((a, b) => {
+      if (sort === "salary")   return b.salaryMax - a.salaryMax;
+      if (sort === "deadline") return new Date(a.deadline) - new Date(b.deadline);
+      return 0;
+    });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function handleFilter(setter) {
     return (e) => { setter(e.target.value); setPage(1); };
@@ -113,14 +121,12 @@ export default function Jobs() {
                 <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant dark:text-[#828796] block mb-1.5">
                   Location
                 </label>
-                <select
+                <input
                   value={location}
                   onChange={handleFilter(setLocation)}
-                  className="w-full bg-surface-container-low dark:bg-[#0d1829] border border-outline-variant/40 dark:border-[#1a202c] text-primary dark:text-[#fbf9f4] text-[13px] px-3 py-2 focus:outline-none focus:border-secondary dark:focus:border-brass transition-colors"
-                >
-                  <option value="">All Locations</option>
-                  {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
-                </select>
+                  placeholder="City, state…"
+                  className="w-full bg-surface-container-low dark:bg-[#0d1829] border border-outline-variant/40 dark:border-[#1a202c] text-primary dark:text-[#fbf9f4] text-[13px] px-3 py-2 focus:outline-none focus:border-secondary dark:focus:border-brass placeholder:text-on-surface-variant/40 transition-colors"
+                />
               </div>
 
               {/* Min salary */}
@@ -152,7 +158,7 @@ export default function Jobs() {
             {/* Count + sort bar */}
             <div className="flex items-center justify-between mb-6 pb-5 border-b border-outline-variant/30 dark:border-[#1a202c]">
               <span className="text-[12px] text-on-surface-variant dark:text-[#828796]">
-                <span className="font-bold text-primary dark:text-[#fbf9f4]">{filtered.length}</span> position{filtered.length !== 1 ? "s" : ""} found
+                <span className="font-bold text-primary dark:text-[#fbf9f4]">{total}</span> position{total !== 1 ? "s" : ""} found
               </span>
               <select
                 value={sort}
@@ -165,8 +171,27 @@ export default function Jobs() {
               </select>
             </div>
 
+            {/* Loading */}
+            {loading && (
+              <div className="py-24 text-center">
+                <span className="font-headline italic text-2xl text-on-surface-variant dark:text-[#45474c]">
+                  Loading positions…
+                </span>
+              </div>
+            )}
+
+            {/* Error */}
+            {!loading && error && (
+              <div className="py-24 text-center">
+                <span className="font-headline italic text-2xl text-on-surface-variant dark:text-[#45474c]">
+                  Could not load positions.
+                </span>
+                <p className="mt-2 text-[12px] text-on-surface-variant dark:text-[#45474c]">{error}</p>
+              </div>
+            )}
+
             {/* Empty state */}
-            {paginated.length === 0 && (
+            {!loading && !error && displayed.length === 0 && (
               <div className="py-24 text-center">
                 <span className="font-headline italic text-2xl text-on-surface-variant dark:text-[#45474c]">
                   No positions match your criteria.
@@ -181,79 +206,85 @@ export default function Jobs() {
             )}
 
             {/* Job cards */}
-            <div className="divide-y divide-outline-variant/20 dark:divide-[#1a202c]">
-              {paginated.map((job) => (
-                <article key={job.id} className="group py-8 flex gap-6">
-                  <div className="flex-1 min-w-0">
-                    {/* Tags */}
-                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-widest border px-2 py-0.5 ${
-                          CATEGORY_STYLE[job.category] || "text-secondary border-secondary dark:text-brass dark:border-brass"
-                        }`}
-                      >
-                        {job.category}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-widest ${
-                          job.status === "active"
-                            ? "text-secondary dark:text-brass"
-                            : "text-on-surface-variant dark:text-[#45474c]"
-                        }`}
-                      >
-                        {job.status === "active" ? "● Active" : "● Closed"}
-                      </span>
+            {!loading && !error && (
+              <div className="divide-y divide-outline-variant/20 dark:divide-[#1a202c]">
+                {displayed.map((job) => (
+                  <article key={job._id} className="group py-8 flex gap-6">
+                    <div className="flex-1 min-w-0">
+                      {/* Tags */}
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-widest border px-2 py-0.5 ${
+                            CATEGORY_STYLE[job.category] || "text-secondary border-secondary dark:text-brass dark:border-brass"
+                          }`}
+                        >
+                          {job.category}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-widest ${
+                            job.status === "active"
+                              ? "text-secondary dark:text-brass"
+                              : "text-on-surface-variant dark:text-[#45474c]"
+                          }`}
+                        >
+                          {job.status === "active" ? "● Active" : "● Closed"}
+                        </span>
+                      </div>
+
+                      <Link to={`/jobs/${job._id}`}>
+                        <h2 className="font-headline italic text-2xl text-primary dark:text-[#fbf9f4] group-hover:text-secondary dark:group-hover:text-brass transition-colors leading-snug">
+                          {job.title}
+                        </h2>
+                      </Link>
+                      <p className="mt-1 text-sm italic text-on-surface-variant dark:text-[#828796]">
+                        {job.institution} · {job.department}
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-on-surface-variant dark:text-[#45474c]">
+                        {job.location}
+                      </p>
+                      <p className="mt-3 text-[13px] text-on-surface-variant dark:text-[#828796] line-clamp-2 leading-relaxed">
+                        {job.description}
+                      </p>
                     </div>
 
-                    <Link to={`/jobs/${job.id}`}>
-                      <h2 className="font-headline italic text-2xl text-primary dark:text-[#fbf9f4] group-hover:text-secondary dark:group-hover:text-brass transition-colors leading-snug">
-                        {job.title}
-                      </h2>
-                    </Link>
-                    <p className="mt-1 text-sm italic text-on-surface-variant dark:text-[#828796]">
-                      {job.institution} · {job.department}
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-on-surface-variant dark:text-[#45474c]">
-                      {job.location}
-                    </p>
-                    <p className="mt-3 text-[13px] text-on-surface-variant dark:text-[#828796] line-clamp-2 leading-relaxed">
-                      {job.description}
-                    </p>
-                  </div>
-
-                  {/* Right meta */}
-                  <div className="flex-shrink-0 flex flex-col items-end justify-between min-w-[130px]">
-                    <div className="text-right">
-                      <span className="block text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">
-                        Salary
-                      </span>
-                      <span className="font-headline text-[15px] text-primary dark:text-[#fbf9f4]">
-                        ${job.salaryMin.toLocaleString()} – ${job.salaryMax.toLocaleString()}
-                      </span>
+                    {/* Right meta */}
+                    <div className="flex-shrink-0 flex flex-col items-end justify-between min-w-[130px]">
+                      <div className="text-right">
+                        <span className="block text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">
+                          Salary
+                        </span>
+                        <span className="font-headline text-[15px] text-primary dark:text-[#fbf9f4]">
+                          {job.salaryMin && job.salaryMax
+                            ? `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`
+                            : "Not specified"}
+                        </span>
+                      </div>
+                      <div className="text-right mt-3">
+                        <span className="block text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">
+                          Deadline
+                        </span>
+                        <span className="text-[12px] text-on-surface-variant dark:text-[#828796]">
+                          {job.deadline
+                            ? new Date(job.deadline).toLocaleDateString("en-US", {
+                                month: "short", day: "numeric", year: "numeric",
+                              })
+                            : "—"}
+                        </span>
+                      </div>
+                      <Link
+                        to={`/jobs/${job._id}`}
+                        className="mt-6 text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass border-b border-secondary dark:border-brass pb-0.5 hover:text-primary hover:border-primary dark:hover:text-[#fbf9f4] dark:hover:border-[#fbf9f4] transition-colors whitespace-nowrap"
+                      >
+                        View Details →
+                      </Link>
                     </div>
-                    <div className="text-right mt-3">
-                      <span className="block text-[10px] uppercase tracking-widest text-on-surface-variant dark:text-[#45474c]">
-                        Deadline
-                      </span>
-                      <span className="text-[12px] text-on-surface-variant dark:text-[#828796]">
-                        {new Date(job.deadline).toLocaleDateString("en-US", {
-                          month: "short", day: "numeric", year: "numeric",
-                        })}
-                      </span>
-                    </div>
-                    <Link
-                      to={`/jobs/${job.id}`}
-                      className="mt-6 text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass border-b border-secondary dark:border-brass pb-0.5 hover:text-primary hover:border-primary dark:hover:text-[#fbf9f4] dark:hover:border-[#fbf9f4] transition-colors whitespace-nowrap"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {!loading && !error && totalPages > 1 && (
               <div className="mt-10 flex items-center justify-center gap-1 pt-8 border-t border-outline-variant/30 dark:border-[#1a202c]">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}

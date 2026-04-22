@@ -101,15 +101,26 @@ export const bookmarkApi = {
   check: (jobId) => request(`/bookmarks/check/${jobId}`),
 };
 
+// ── Jobs ───────────────────────────────────────────────────────────────────
+export const jobApi = {
+  /** Returns { items, total, page, limit }. Params: { q, category, location, status, page, limit } */
+  getAll: (params = {}) =>
+    request(`/jobs?${new URLSearchParams(params)}`),
+
+  /** Returns a single job object */
+  getById: (id) => request(`/jobs/${id}`),
+};
+
 // ── Applications ───────────────────────────────────────────────────────────
 export const applicationApi = {
   /** Submit an application. Sends multipart/form-data if resume file provided. */
-  apply: async ({ jobId, resumeUrl, coverLetter, resumeFile }) => {
-    if (resumeFile) {
+  apply: async ({ jobId, resumeUrl, coverLetter, resumeFile, coverLetterFile }) => {
+    if (resumeFile || coverLetterFile) {
       // File upload via FormData
       const formData = new FormData();
       formData.append("jobId", jobId);
-      formData.append("resume", resumeFile);
+      if (resumeFile) formData.append("resume", resumeFile);
+      if (coverLetterFile) formData.append("coverLetterFile", coverLetterFile);
       if (coverLetter) formData.append("coverLetter", coverLetter);
       if (resumeUrl) formData.append("resumeUrl", resumeUrl);
 

@@ -17,7 +17,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 // Seeker: submit application (with optional file upload)
-router.post("/", requireRole("seeker"), upload.single("resume"), createApplication);
+router.post("/", requireRole("seeker"), upload.fields([{ name: "resume", maxCount: 1 }, { name: "coverLetterFile", maxCount: 1 }]), createApplication);
 
 // Seeker: get my applications
 router.get("/my", requireRole("seeker"), getMyApplications);
