@@ -46,8 +46,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Uploads (local dev)
-server/uploads/
+# Uploads (local dev) — ignore contents but keep directory via .gitkeep
+server/uploads/*
+!server/uploads/.gitkeep
 
 # Misc
 *.pem
