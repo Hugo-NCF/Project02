@@ -24,13 +24,20 @@ async function verifyToken(req, res, next) {
     }
 
     const decoded = await admin.auth().verifyIdToken(token);
+    const isAdminEmail = process.env.ADMIN_EMAIL && decoded.email === process.env.ADMIN_EMAIL;
     let user = await User.findOne({ email: decoded.email }).lean();
     if (!user) {
       user = await User.create({
         name: decoded.name || decoded.email.split("@")[0],
         email: decoded.email,
-        role: "seeker",
+        role: isAdminEmail ? "admin" : "seeker",
       });
+    } else if (isAdminEmail && user.role !== "admin") {
+      user = await User.findOneAndUpdate(
+        { email: decoded.email },
+        { role: "admin" },
+        { new: true }
+      ).lean();
     }
     req.user = { uid: decoded.uid, email: decoded.email, name: user.name, role: user.role };
     next();

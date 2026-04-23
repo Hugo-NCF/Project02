@@ -59,15 +59,18 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const roles = getStoredRoles();
         const roleData = roles[firebaseUser.email] || { role: "seeker", name: firebaseUser.displayName };
+        const dbUser = await userApi.getMe().catch(() => null);
+        const recruiterStatus = dbUser?.recruiterStatus ?? roleData.recruiterStatus;
         setCurrentUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           name: roleData.name || firebaseUser.displayName,
           role: roleData.role,
+          ...(recruiterStatus ? { recruiterStatus } : {}),
         });
       } else {
         setCurrentUser(null);
@@ -95,12 +98,15 @@ export function AuthProvider({ children }) {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(credential.user, { displayName: name });
     setStoredRole(email, { name, role });
-    await userApi.sync({ name, email, role }).catch(() => {});
+    const dbUser = await userApi.sync({ name, email, role }).catch(() => null);
+    const recruiterStatus = dbUser?.recruiterStatus ?? (role === "recruiter" ? "pending" : undefined);
+    if (recruiterStatus) setStoredRole(email, { name, role, recruiterStatus });
     const user = {
       uid: credential.user.uid,
       email: credential.user.email,
       name,
       role,
+      ...(recruiterStatus ? { recruiterStatus } : {}),
     };
     setCurrentUser(user);
     return user;
@@ -108,6 +114,15 @@ export function AuthProvider({ children }) {
 
   async function login({ email, password }) {
     if (USE_MOCK_AUTH) {
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+      if (adminEmail && email === adminEmail && password === adminPassword) {
+        const user = { uid: "admin_permanent", email, name: "Admin", role: "admin" };
+        localStorage.setItem(MOCK_CURRENT_USER_KEY, JSON.stringify(user));
+        setCurrentUser(user);
+        return user;
+      }
+
       const users = getMockUsers();
       const record = users[email];
       if (!record || record.password !== password) {
@@ -122,11 +137,15 @@ export function AuthProvider({ children }) {
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const roles = getStoredRoles();
     const roleData = roles[email] || { role: "seeker", name: credential.user.displayName };
+    const dbUser = await userApi.getMe().catch(() => null);
+    const recruiterStatus = dbUser?.recruiterStatus ?? roleData.recruiterStatus;
+    if (recruiterStatus) setStoredRole(email, { ...roleData, recruiterStatus });
     const user = {
       uid: credential.user.uid,
       email: credential.user.email,
       name: roleData.name || credential.user.displayName,
       role: roleData.role,
+      ...(recruiterStatus ? { recruiterStatus } : {}),
     };
     setCurrentUser(user);
     return user;

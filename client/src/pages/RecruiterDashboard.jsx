@@ -69,6 +69,29 @@ export default function RecruiterDashboard() {
     setJobs((prev) => prev.filter((j) => j.id !== jobId));
   }
 
+  if (currentUser?.recruiterStatus === "pending") {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-6 py-16">
+        <div className="max-w-lg w-full text-center space-y-6">
+          <span className="material-symbols-outlined text-[56px] text-amber-500">hourglass_top</span>
+          <h1 className="font-headline italic text-3xl text-primary dark:text-[#fbf9f4]">
+            Account Pending Approval
+          </h1>
+          <p className="text-on-surface-variant dark:text-[#828796] leading-relaxed">
+            Your recruiter account is awaiting admin verification. You'll receive
+            an email once your credentials are confirmed and your account is
+            activated.
+          </p>
+          <div className="border-t border-outline-variant/30 dark:border-[#1a202c] pt-6">
+            <p className="text-xs uppercase tracking-widest text-secondary dark:text-brass">
+              Approval typically takes 1–2 business days
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background dark:bg-[#030813] min-h-screen text-on-surface dark:text-[#fbf9f4]">
       <div className="max-w-7xl mx-auto px-6 py-12">

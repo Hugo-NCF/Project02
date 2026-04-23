@@ -42,7 +42,7 @@ export default function Register() {
   }
 
   return (
-    <div className="-mx-0 -my-0 flex min-h-[calc(100vh-8rem)] flex-col bg-background md:flex-row">
+    <div className="-mx-0 -my-0 flex min-h-[calc(100vh-8rem)] flex-col bg-background dark:bg-[#030813] md:flex-row">
       {/* ─── EDITORIAL SIDE ─── */}
       <aside className="relative hidden overflow-hidden bg-primary-container md:flex md:w-[40%] md:flex-col md:justify-between md:p-16">
         {/* Architectural photograph with editorial treatment */}
@@ -97,21 +97,21 @@ export default function Register() {
       </aside>
 
       {/* ─── FORM SIDE ─── */}
-      <section className="paper-grain relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-16 sm:px-12 md:px-16 lg:px-24">
+      <section className="paper-grain relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-16 sm:px-12 md:px-16 lg:px-24 dark:bg-[#0a1220]">
         <div className="relative z-10 w-full max-w-2xl space-y-12">
           {/* Header */}
           <header className="space-y-4">
-            <span className="animate-rise block text-[11px] font-bold uppercase tracking-[0.2em] text-secondary">
+            <span className="animate-rise block text-[11px] font-bold uppercase tracking-[0.2em] text-secondary dark:text-brass">
               Create account
             </span>
             <h2
-              className="animate-rise font-headline text-4xl text-primary md:text-5xl"
+              className="animate-rise font-headline text-4xl text-primary dark:text-[#fbf9f4] md:text-5xl"
               style={{ animationDelay: "0.05s" }}
             >
               Sign up
             </h2>
             <p
-              className="animate-rise max-w-md leading-relaxed text-on-surface-variant"
+              className="animate-rise max-w-md leading-relaxed text-on-surface-variant dark:text-[#828796]"
               style={{ animationDelay: "0.1s" }}
             >
               Apply for academic jobs, or post listings for your institution.
@@ -167,7 +167,7 @@ export default function Register() {
             <div className="space-y-6">
               <div className="flex items-center gap-4">
                 <div className="h-px flex-grow bg-outline-variant" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/60">
+                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/60 dark:text-[#828796]">
                   I'm a
                 </span>
                 <div className="h-px flex-grow bg-outline-variant" />
@@ -204,11 +204,11 @@ export default function Register() {
                 <span className="absolute inset-y-0 left-0 w-0 bg-brass/15 transition-all duration-500 group-hover:w-full" />
               </button>
 
-              <p className="text-center text-sm text-on-surface-variant">
+              <p className="text-center text-sm text-on-surface-variant dark:text-[#828796]">
                 Already have an account?{" "}
                 <Link
                   to="/login"
-                  className="font-bold text-secondary underline decoration-1 underline-offset-4 transition-colors hover:text-brass"
+                  className="font-bold text-secondary dark:text-brass underline decoration-1 underline-offset-4 transition-colors hover:text-brass"
                 >
                   Sign in
                 </Link>
@@ -237,7 +237,7 @@ function EditorialInput({
     <div className="group space-y-2">
       <label
         htmlFor={id}
-        className="block text-[11px] font-bold uppercase tracking-[0.2em] text-secondary"
+        className="block text-[11px] font-bold uppercase tracking-[0.2em] text-secondary dark:text-brass"
       >
         {label}
       </label>
@@ -249,7 +249,7 @@ function EditorialInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full border-0 border-b border-outline-variant bg-surface-container-low p-4 text-[15px] text-on-surface placeholder:italic placeholder:text-slate-400 focus:border-secondary focus:outline-none focus:ring-0"
+        className="w-full border-0 border-b border-outline-variant dark:border-[#1a202c] bg-surface-container-low dark:bg-[#0d1829] p-4 text-[15px] text-on-surface dark:text-[#fbf9f4] placeholder:italic placeholder:text-slate-400 dark:placeholder:text-[#45474c] focus:border-secondary dark:focus:border-brass focus:outline-none focus:ring-0"
         style={{ borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 0 }}
       />
     </div>
@@ -264,8 +264,8 @@ function RoleCard({ checked, onSelect, title, description, icon }) {
       aria-pressed={checked}
       className={`group relative flex h-full flex-col items-start gap-4 p-8 text-left transition-all duration-300 ${
         checked
-          ? "bg-white shadow-[0_0_0_2px_var(--color-secondary),0_0_0_6px_rgba(117,89,52,0.2)]"
-          : "bg-surface-container hover:bg-surface-container-high"
+          ? "bg-white dark:bg-[#0d1829] shadow-[0_0_0_2px_var(--color-secondary),0_0_0_6px_rgba(117,89,52,0.2)]"
+          : "bg-surface-container dark:bg-[#1a202c] hover:bg-surface-container-high dark:hover:bg-[#1f2937]"
       }`}
     >
       <div className="flex h-12 w-12 items-center justify-center bg-primary text-on-primary">
@@ -273,14 +273,14 @@ function RoleCard({ checked, onSelect, title, description, icon }) {
       </div>
 
       <div>
-        <h3 className="serif-italic text-xl text-primary">{title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
+        <h3 className="serif-italic text-xl text-primary dark:text-[#fbf9f4]">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-on-surface-variant dark:text-[#828796]">
           {description}
         </p>
       </div>
 
       <div
-        className={`mt-auto flex items-center gap-2 pt-4 text-secondary transition-opacity duration-300 ${
+        className={`mt-auto flex items-center gap-2 pt-4 text-secondary dark:text-brass transition-opacity duration-300 ${
           checked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
       >

@@ -165,4 +165,6 @@ export const applicationApi = {
 export const userApi = {
   /** Create / sync a MongoDB user record after Firebase registration. */
   sync: (data) => request("/users", { method: "POST", body: data }),
+  /** Fetch the current user's full profile from MongoDB (includes recruiterStatus). */
+  getMe: () => request("/users/me"),
 };

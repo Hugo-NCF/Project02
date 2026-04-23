@@ -9,6 +9,7 @@ async function createUser(req, res, next) {
       email,
       role,
       profile,
+      ...(role === "recruiter" ? { recruiterStatus: "pending" } : {}),
     });
 
     res.status(201).json(user);
@@ -61,10 +62,21 @@ async function deleteUser(req, res, next) {
   }
 }
 
+async function getMe(req, res, next) {
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createUser,
   getUsers,
   getUserById,
+  getMe,
   updateUser,
   deleteUser,
 };

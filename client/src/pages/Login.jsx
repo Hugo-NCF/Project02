@@ -37,27 +37,27 @@ export default function Login() {
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="mb-6 text-sm text-gray-600">
+        <div className="rounded-lg border border-gray-200 dark:border-[#1a202c] bg-white dark:bg-[#0d1829] p-8 shadow-sm">
+          <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-[#fbf9f4]">Welcome back</h1>
+          <p className="mb-6 text-sm text-gray-600 dark:text-[#828796]">
             Sign in to your Campus Careers account.
           </p>
 
           {isMockAuth && (
-            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <div className="mb-4 rounded-md border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
               Dev mode: using local mock auth. Register an account first.
             </div>
           )}
 
           {error && (
-            <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="mb-4 rounded-md border border-red-200 dark:border-red-700/50 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-400">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#e4e2dd]">
                 Email
               </label>
               <input
@@ -66,13 +66,13 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-[#1a202c] bg-white dark:bg-[#0a1220] px-3 py-2 text-sm text-gray-900 dark:text-[#fbf9f4] placeholder:text-gray-400 dark:placeholder:text-[#45474c] focus:border-gray-900 dark:focus:border-[#fbf9f4] focus:outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-[#fbf9f4]"
                 placeholder="you@university.edu"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-[#e4e2dd]">
                 Password
               </label>
               <input
@@ -81,7 +81,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-[#1a202c] bg-white dark:bg-[#0a1220] px-3 py-2 text-sm text-gray-900 dark:text-[#fbf9f4] placeholder:text-gray-400 dark:placeholder:text-[#45474c] focus:border-gray-900 dark:focus:border-[#fbf9f4] focus:outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-[#fbf9f4]"
                 placeholder="••••••••"
               />
             </div>
@@ -89,15 +89,15 @@ export default function Login() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+              className="w-full rounded-md bg-gray-900 dark:bg-[#fbf9f4] px-4 py-2 text-sm font-medium text-white dark:text-[#030813] transition hover:bg-gray-800 dark:hover:bg-[#e4e2dd] disabled:opacity-50"
             >
               {submitting ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-gray-600 dark:text-[#828796]">
             Don't have an account?{" "}
-            <Link to="/register" className="font-medium text-gray-900 underline">
+            <Link to="/register" className="font-medium text-gray-900 dark:text-[#fbf9f4] underline">
               Register
             </Link>
           </p>
