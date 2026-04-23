@@ -1,10 +1,6 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import mockJobs from "../services/mockJobs.json";
-
-const activeJobs      = mockJobs.filter((j) => j.status === "active");
-const featuredJobs    = activeJobs.slice(0, 3);
-const institutions    = new Set(mockJobs.map((j) => j.institution)).size;
-const categories      = new Set(mockJobs.map((j) => j.category)).size;
+import { jobApi } from "../services/api";
 
 const CATEGORY_BORDER = {
   Faculty:        "border-secondary",
@@ -13,6 +9,15 @@ const CATEGORY_BORDER = {
 };
 
 export default function Home() {
+  const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [totalJobs, setTotalJobs] = useState(0);
+
+  useEffect(() => {
+    jobApi.getAll({ status: "active", limit: 3 })
+      .then(({ items, total }) => { setFeaturedJobs(items); setTotalJobs(total); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="bg-background dark:bg-[#030813] text-on-surface dark:text-[#fbf9f4]">
 
@@ -50,9 +55,9 @@ export default function Home() {
         {/* Stats strip */}
         <div className="mt-14 flex flex-wrap gap-10 border-t border-outline-variant/30 dark:border-[#1a202c] pt-8">
           {[
-            { value: activeJobs.length, label: "Active Positions"  },
-            { value: institutions,      label: "Institutions"       },
-            { value: categories,        label: "Job Categories"     },
+            { value: totalJobs, label: "Active Positions" },
+            { value: 20,        label: "Institutions"     },
+            { value: 21,        label: "Job Categories"   },
           ].map(({ value, label }) => (
             <div key={label}>
               <span className="block font-headline text-4xl font-bold text-primary dark:text-[#fbf9f4]">
@@ -94,14 +99,14 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {featuredJobs.map((job) => (
             <Link
-              to="/jobs"
-              key={job.id}
+              to={`/jobs/${job._id}`}
+              key={job._id}
               className={`group bg-surface-container-low dark:bg-[#0d1829] p-8 border-t-2 ${
                 CATEGORY_BORDER[job.category] || "border-secondary"
               } hover:bg-surface-container dark:hover:bg-[#1a202c] transition-colors duration-200`}
             >
               <span className="text-[10px] font-bold uppercase tracking-widest text-secondary dark:text-brass">
-                {job.category} · {job.department}
+                {job.category}
               </span>
               <h3 className="font-headline italic text-xl text-primary dark:text-[#fbf9f4] mt-3 leading-snug group-hover:text-secondary dark:group-hover:text-brass transition-colors">
                 {job.title}
@@ -119,7 +124,9 @@ export default function Home() {
                     Salary Range
                   </span>
                   <span className="font-headline text-[15px] text-primary dark:text-[#fbf9f4]">
-                    ${job.salaryMin.toLocaleString()} – ${job.salaryMax.toLocaleString()}
+                    {job.salaryMin && job.salaryMax
+                      ? `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`
+                      : "Not specified"}
                   </span>
                 </div>
                 <span className="text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass group-hover:translate-x-1 transition-transform duration-200">

@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, "Password is required"],
+      default: "",
     },
     role: {
       type: String,

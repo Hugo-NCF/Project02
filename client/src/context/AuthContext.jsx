@@ -7,6 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../services/firebase";
+import { userApi } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -94,6 +95,7 @@ export function AuthProvider({ children }) {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(credential.user, { displayName: name });
     setStoredRole(email, { name, role });
+    await userApi.sync({ name, email, role }).catch(() => {});
     const user = {
       uid: credential.user.uid,
       email: credential.user.email,

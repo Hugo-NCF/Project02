@@ -1,25 +1,21 @@
-// Centralized API client for Campus Careers backend.
-//
-// Auth tokens: In mock-auth mode the frontend base64-encodes the stored user
-// object as a Bearer token, which the server's verifyToken stub decodes.
-// When Jose wires up Firebase Admin SDK, the real Firebase idToken will be
-// retrieved from firebase.auth().currentUser.getIdToken() instead.
+import { auth } from "./firebase";
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5050/api";
 
-/** Returns the dev/mock Bearer token from localStorage. */
-function getDevToken() {
-  const raw = localStorage.getItem("campus_careers_mock_current_user");
-  return raw ? btoa(raw) : null;
+const USE_MOCK_AUTH =
+  import.meta.env.VITE_USE_MOCK_AUTH === "true" ||
+  import.meta.env.VITE_FIREBASE_API_KEY === "placeholder_api_key";
+
+async function getToken() {
+  if (USE_MOCK_AUTH) {
+    const raw = localStorage.getItem("campus_careers_mock_current_user");
+    return raw ? btoa(raw) : null;
+  }
+  return auth.currentUser?.getIdToken() ?? null;
 }
 
-/**
- * Core fetch wrapper.
- * @param {string} path  - API path (e.g. "/admin/users")
- * @param {object} opts  - { method, body, token }
- */
 async function request(path, { method = "GET", body, token } = {}) {
-  const t = token ?? getDevToken();
+  const t = token ?? await getToken();
   const headers = { "Content-Type": "application/json" };
   if (t) headers["Authorization"] = `Bearer ${t}`;
 
@@ -124,7 +120,7 @@ export const applicationApi = {
       if (coverLetter) formData.append("coverLetter", coverLetter);
       if (resumeUrl) formData.append("resumeUrl", resumeUrl);
 
-      const t = getDevToken();
+      const t = await getToken();
       const headers = {};
       if (t) headers["Authorization"] = `Bearer ${t}`;
 
@@ -163,4 +159,10 @@ export const applicationApi = {
   /** Update application status. Returns updated application */
   updateStatus: (id, status) =>
     request(`/applications/${id}/status`, { method: "PATCH", body: { status } }),
+};
+
+// ── Users ──────────────────────────────────────────────────────────────────
+export const userApi = {
+  /** Create / sync a MongoDB user record after Firebase registration. */
+  sync: (data) => request("/users", { method: "POST", body: data }),
 };

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { applicationApi } from "../services/api";
-import mockJobs from "../services/mockJobs.json";
+import { applicationApi, jobApi, bookmarkApi } from "../services/api";
 
 const STATUS_STYLE = {
   pending:    "bg-secondary/10 text-secondary dark:bg-brass/10 dark:text-brass",
@@ -13,7 +12,9 @@ const STATUS_STYLE = {
 export default function SeekerDashboard() {
   const { currentUser } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [recommended,  setRecommended]  = useState([]);
+  const [bookmarks,    setBookmarks]    = useState([]);
+  const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -24,23 +25,29 @@ export default function SeekerDashboard() {
       .finally(() => setLoading(false));
   }, [currentUser]);
 
+  useEffect(() => {
+    jobApi.getAll({ status: "active", limit: 6 })
+      .then(({ items }) => setRecommended(items))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    bookmarkApi.getAll()
+      .then(setBookmarks)
+      .catch(() => {});
+  }, [currentUser]);
+
   const appliedJobs = applications
     .map((app) => {
-      // jobId may be populated (object) or a plain string
-      const job =
-        typeof app.jobId === "object" && app.jobId
-          ? app.jobId
-          : mockJobs.find((j) => j.id === app.jobId);
+      const job = typeof app.jobId === "object" && app.jobId ? app.jobId : null;
       return job ? { ...app, job } : null;
     })
     .filter(Boolean);
 
-  const activeJobs = mockJobs.filter((j) => j.status === "active");
-  const recommended = activeJobs
-    .filter((j) => !appliedJobs.some((a) => {
-      const appJobId = a.job._id || a.job.id;
-      return appJobId === j.id || appJobId === j._id;
-    }))
+  const appliedIds = new Set(appliedJobs.map((a) => String(a.job._id)));
+  const recommendedFiltered = recommended
+    .filter((j) => !appliedIds.has(String(j._id)))
     .slice(0, 3);
 
   const stats = {
@@ -191,10 +198,10 @@ export default function SeekerDashboard() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {recommended.map((job) => (
+                {recommendedFiltered.map((job) => (
                   <Link
-                    key={job.id}
-                    to={`/jobs/${job.id}`}
+                    key={job._id}
+                    to={`/jobs/${job._id}`}
                     className="group bg-surface-container-low dark:bg-[#0d1829] border border-outline-variant/20 dark:border-[#1a202c] p-6 hover:bg-surface-container dark:hover:bg-[#1a202c] transition-colors"
                   >
                     <span className="text-[10px] font-bold uppercase tracking-widest text-secondary dark:text-brass">
@@ -207,7 +214,9 @@ export default function SeekerDashboard() {
                       {job.institution}
                     </p>
                     <p className="text-[12px] text-on-surface-variant dark:text-[#45474c] mt-3">
-                      ${job.salaryMin.toLocaleString()} – ${job.salaryMax.toLocaleString()}
+                      {job.salaryMin && job.salaryMax
+                        ? `$${job.salaryMin.toLocaleString()} – $${job.salaryMax.toLocaleString()}`
+                        : "Not specified"}
                     </p>
                     <span className="mt-4 block text-[11px] font-bold uppercase tracking-widest text-secondary dark:text-brass group-hover:translate-x-1 transition-transform duration-200">
                       Quick Apply →
@@ -240,6 +249,43 @@ export default function SeekerDashboard() {
               >
                 Edit Profile
               </Link>
+            </div>
+
+            {/* Saved positions */}
+            <div className="bg-surface-container-low dark:bg-[#0d1829] border border-outline-variant/20 dark:border-[#1a202c] p-6">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-secondary dark:text-brass">
+                Saved Positions
+              </span>
+              {bookmarks.length === 0 ? (
+                <p className="mt-4 text-[12px] italic text-on-surface-variant dark:text-[#828796]">
+                  No saved positions yet.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  {bookmarks.slice(0, 5).map((bm) => {
+                    const job = bm.jobId;
+                    if (!job) return null;
+                    return (
+                      <div key={bm._id}>
+                        <Link
+                          to={`/jobs/${job._id}`}
+                          className="block text-[13px] font-headline italic text-primary dark:text-[#fbf9f4] hover:text-secondary dark:hover:text-brass transition-colors leading-snug"
+                        >
+                          {job.title}
+                        </Link>
+                        <p className="text-[11px] italic text-on-surface-variant dark:text-[#828796] mt-0.5">
+                          {job.institution}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  {bookmarks.length > 5 && (
+                    <p className="text-[11px] text-on-surface-variant dark:text-[#45474c]">
+                      +{bookmarks.length - 5} more saved
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Editorial advice */}

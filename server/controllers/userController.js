@@ -2,18 +2,11 @@ const User = require("../models/User");
 
 async function createUser(req, res, next) {
   try {
-    const { name, email, password, role, profile } = req.body;
-
-    if (!password || password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters" });
-    }
+    const { name, email, role, profile } = req.body;
 
     const user = await User.create({
       name,
       email,
-      passwordHash: `plain:${password}`,
       role,
       profile,
     });

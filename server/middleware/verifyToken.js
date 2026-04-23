@@ -1,11 +1,8 @@
-// STUB — Jose: replace this body with Firebase Admin SDK verification.
-// Current implementation decodes a base64-encoded JSON user object sent by the
-// frontend in dev/mock-auth mode. Shape expected: { uid, email, name, role }
-//
-// Jose's replacement:
-//   const admin = require("firebase-admin");
-//   const decoded = await admin.auth().verifyIdToken(token);
-//   req.user = { uid: decoded.uid, email: decoded.email, name: decoded.name, role: decoded.role };
+const admin = require("../config/firebase");
+const User = require("../models/User");
+
+// Falls back to mock base64 decode when Firebase env vars are not configured.
+const USE_MOCK = !process.env.FIREBASE_PROJECT_ID;
 
 async function verifyToken(req, res, next) {
   const header = req.headers.authorization ?? "";
@@ -17,11 +14,25 @@ async function verifyToken(req, res, next) {
   const token = header.slice(7);
 
   try {
-    const payload = JSON.parse(Buffer.from(token, "base64").toString("utf8"));
-    if (!payload.uid || !payload.role) {
-      return res.status(401).json({ error: "Invalid token payload" });
+    if (USE_MOCK) {
+      const payload = JSON.parse(Buffer.from(token, "base64").toString("utf8"));
+      if (!payload.uid || !payload.role) {
+        return res.status(401).json({ error: "Invalid token payload" });
+      }
+      req.user = payload;
+      return next();
     }
-    req.user = payload; // { uid, email, name, role }
+
+    const decoded = await admin.auth().verifyIdToken(token);
+    let user = await User.findOne({ email: decoded.email }).lean();
+    if (!user) {
+      user = await User.create({
+        name: decoded.name || decoded.email.split("@")[0],
+        email: decoded.email,
+        role: "seeker",
+      });
+    }
+    req.user = { uid: decoded.uid, email: decoded.email, name: user.name, role: user.role };
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });
