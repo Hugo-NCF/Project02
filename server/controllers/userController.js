@@ -4,13 +4,21 @@ async function createUser(req, res, next) {
   try {
     const { name, email, role, profile } = req.body;
 
-    const user = await User.create({
-      name,
-      email,
-      role,
-      profile,
-      ...(role === "recruiter" ? { recruiterStatus: "pending" } : {}),
-    });
+    // Upsert: if verifyToken already created the user as "seeker" during the
+    // registration race condition, this corrects the role to what the client sent.
+    const user = await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          name,
+          role,
+          ...(profile ? { profile } : {}),
+          ...(role === "recruiter" ? { recruiterStatus: "pending" } : {}),
+        },
+        $setOnInsert: { email },
+      },
+      { upsert: true, new: true, runValidators: true }
+    );
 
     res.status(201).json(user);
   } catch (err) {

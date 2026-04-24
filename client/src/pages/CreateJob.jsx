@@ -1,18 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
-const RECRUITER_JOBS_KEY = "campus_careers_recruiter_jobs";
+import { jobApi } from "../services/api";
 
 const CATEGORIES = ["Faculty", "Research", "Administration"];
-
-function getLocalJobs() {
-  try {
-    return JSON.parse(localStorage.getItem(RECRUITER_JOBS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
 
 export default function CreateJob() {
   const { currentUser } = useAuth();
@@ -32,16 +23,21 @@ export default function CreateJob() {
     startDate: "",
   });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
     setError("");
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title.trim() || !form.institution.trim() || !form.location.trim()) {
       setError("Title, institution, and location are required.");
+      return;
+    }
+    if (!form.description.trim()) {
+      setError("Description is required.");
       return;
     }
     if (!form.deadline) {
@@ -49,20 +45,21 @@ export default function CreateJob() {
       return;
     }
 
-    const job = {
-      id: `job_local_${Date.now()}`,
-      ...form,
-      salaryMin: Number(form.salaryMin) || 0,
-      salaryMax: Number(form.salaryMax) || 0,
-      recruiterId: currentUser?.uid || "unknown",
-      status: "active",
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-
-    const jobs = getLocalJobs();
-    jobs.push(job);
-    localStorage.setItem(RECRUITER_JOBS_KEY, JSON.stringify(jobs));
-    navigate("/recruiter");
+    setSubmitting(true);
+    try {
+      await jobApi.create({
+        ...form,
+        salaryMin: Number(form.salaryMin) || 0,
+        salaryMax: Number(form.salaryMax) || 0,
+        recruiterId: currentUser?.uid,
+        status: "active",
+      });
+      navigate("/recruiter");
+    } catch (err) {
+      setError(err.message || "Failed to create job.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const inputClass =
@@ -178,9 +175,10 @@ export default function CreateJob() {
           <div className="flex gap-4 pt-4">
             <button
               type="submit"
-              className="bg-primary dark:bg-[#fbf9f4] text-on-primary dark:text-[#030813] px-8 py-3 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
+              disabled={submitting}
+              className="bg-primary dark:bg-[#fbf9f4] text-on-primary dark:text-[#030813] px-8 py-3 text-[11px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity disabled:opacity-50"
             >
-              Publish Position
+              {submitting ? "Publishing…" : "Publish Position"}
             </button>
             <Link
               to="/recruiter"

@@ -78,8 +78,7 @@ const jobSchema = new mongoose.Schema(
       type: Date,
     },
     recruiterId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
     },
     status: {
       type: String,

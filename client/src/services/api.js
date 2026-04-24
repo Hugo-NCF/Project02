@@ -106,6 +106,9 @@ export const jobApi = {
   /** Returns a single job object */
   getById: (id) => request(`/jobs/${id}`),
 
+  /** Create a new job posting */
+  create: (data) => request("/jobs", { method: "POST", body: data }),
+
   delete: (id) => request(`/jobs/${id}`, { method: "DELETE" }),
 };
 
