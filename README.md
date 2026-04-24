@@ -35,6 +35,8 @@ We coordinated work via a shared Trello board and Discord; see `docs/` for Trell
 ## Live Links
 
 - **GitHub repo:** https://github.com/<org>/Project02
+- **Live Demo:** https://project02-66t1.vercel.app    
+- **API:** https://campus-careers-api.onrender.com/api      
 - **Frontend (local):** http://localhost:5173
 - **Backend API (local):** http://localhost:5050/api
 - **Demo video:** (link inside `docs/demo.md` or shared live in class)
