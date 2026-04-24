@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const fs = require("fs");
 
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
@@ -16,12 +17,16 @@ const app = express();
 
 const path = require("path");
 
+// Ensure uploads directory exists (multer crashes on first upload if missing)
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
 // Serve uploaded resumes
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadsDir));
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "campus-careers-api" });
