@@ -64,12 +64,16 @@ export function AuthProvider({ children }) {
         const roles = getStoredRoles();
         const roleData = roles[firebaseUser.email] || { role: "seeker", name: firebaseUser.displayName };
         const dbUser = await userApi.getMe().catch(() => null);
+        const role = dbUser?.role || roleData.role;
         const recruiterStatus = dbUser?.recruiterStatus ?? roleData.recruiterStatus;
+        if (dbUser?.role && dbUser.role !== roleData.role) {
+          setStoredRole(firebaseUser.email, { ...roleData, role: dbUser.role });
+        }
         setCurrentUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           name: roleData.name || firebaseUser.displayName,
-          role: roleData.role,
+          role,
           ...(recruiterStatus ? { recruiterStatus } : {}),
         });
       } else {
@@ -99,13 +103,14 @@ export function AuthProvider({ children }) {
     await updateProfile(credential.user, { displayName: name });
     setStoredRole(email, { name, role });
     const dbUser = await userApi.sync({ name, email, role }).catch(() => null);
-    const recruiterStatus = dbUser?.recruiterStatus ?? (role === "recruiter" ? "pending" : undefined);
-    if (recruiterStatus) setStoredRole(email, { name, role, recruiterStatus });
+    const effectiveRole = dbUser?.role || role;
+    const recruiterStatus = dbUser?.recruiterStatus ?? (effectiveRole === "recruiter" ? "pending" : undefined);
+    setStoredRole(email, { name, role: effectiveRole, ...(recruiterStatus ? { recruiterStatus } : {}) });
     const user = {
       uid: credential.user.uid,
       email: credential.user.email,
       name,
-      role,
+      role: effectiveRole,
       ...(recruiterStatus ? { recruiterStatus } : {}),
     };
     setCurrentUser(user);
@@ -138,13 +143,14 @@ export function AuthProvider({ children }) {
     const roles = getStoredRoles();
     const roleData = roles[email] || { role: "seeker", name: credential.user.displayName };
     const dbUser = await userApi.getMe().catch(() => null);
+    const role = dbUser?.role || roleData.role;
     const recruiterStatus = dbUser?.recruiterStatus ?? roleData.recruiterStatus;
-    if (recruiterStatus) setStoredRole(email, { ...roleData, recruiterStatus });
+    setStoredRole(email, { ...roleData, role, ...(recruiterStatus ? { recruiterStatus } : {}) });
     const user = {
       uid: credential.user.uid,
       email: credential.user.email,
       name: roleData.name || credential.user.displayName,
-      role: roleData.role,
+      role,
       ...(recruiterStatus ? { recruiterStatus } : {}),
     };
     setCurrentUser(user);
