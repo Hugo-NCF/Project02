@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { applicationApi } from "../services/api";
-import mockJobs from "../services/mockJobs.json";
-
-const RECRUITER_JOBS_KEY = "campus_careers_recruiter_jobs";
-
-function getLocalJobs() {
-  try {
-    return JSON.parse(localStorage.getItem(RECRUITER_JOBS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
+import { applicationApi, jobApi } from "../services/api";
 
 const STATUS_STYLE = {
   pending:
@@ -27,25 +16,31 @@ export default function Applicants() {
   const { id } = useParams();
   const { currentUser } = useAuth();
 
-  const allJobs = [...mockJobs, ...getLocalJobs()];
-  const job = allJobs.find((j) => j.id === id || j._id === id);
-  const isOwner = job && (job.recruiterId === currentUser?.uid);
-
+  const [job, setJob] = useState(null);
+  const [jobLoading, setJobLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!id || !isOwner) {
-      setLoading(false);
-      return;
-    }
+    setJobLoading(true);
+    jobApi.getById(id)
+      .then(setJob)
+      .catch(() => setJob(null))
+      .finally(() => setJobLoading(false));
+  }, [id]);
+
+  const isOwner = job && (job.recruiterId === currentUser?.uid);
+
+  useEffect(() => {
+    if (!id || jobLoading) return;
+    if (!isOwner) { setLoading(false); return; }
     applicationApi
       .getByJob(id)
       .then((res) => setApplications(res.items || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id, isOwner]);
+  }, [id, isOwner, jobLoading]);
 
   async function handleStatusChange(appId, newStatus) {
     try {
@@ -56,6 +51,16 @@ export default function Applicants() {
     } catch (err) {
       alert(err.message || "Failed to update status");
     }
+  }
+
+  if (jobLoading) {
+    return (
+      <div className="bg-background dark:bg-[#030813] min-h-screen flex items-center justify-center">
+        <span className="font-headline italic text-2xl text-on-surface-variant dark:text-[#45474c]">
+          Loading…
+        </span>
+      </div>
+    );
   }
 
   if (!job || !isOwner) {

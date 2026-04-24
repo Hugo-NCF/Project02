@@ -1,26 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import mockJobs from "../services/mockJobs.json";
-
-const RECRUITER_JOBS_KEY = "campus_careers_recruiter_jobs";
-const APPS_KEY = "campus_careers_applications";
-
-function getLocalJobs() {
-  try {
-    return JSON.parse(localStorage.getItem(RECRUITER_JOBS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function getApplications() {
-  try {
-    return JSON.parse(localStorage.getItem(APPS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
+import { jobApi } from "../services/api";
 
 function daysSince(dateStr) {
   const days = Math.floor(
@@ -41,14 +22,20 @@ const CATEGORY_BADGE = {
 export default function RecruiterDashboard() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("live");
-  const [jobs, setJobs] = useState(() => {
-    const all = [...mockJobs, ...getLocalJobs()];
-    return all.filter((j) => j.recruiterId === currentUser?.uid);
-  });
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setLoading(true);
+    jobApi.getAll({ recruiterId: currentUser.uid, limit: 100 })
+      .then(({ items }) => setJobs(items))
+      .catch(() => setJobs([]))
+      .finally(() => setLoading(false));
+  }, [currentUser]);
 
   const activeJobs = jobs.filter((j) => j.status === "active");
   const closedJobs = jobs.filter((j) => j.status === "closed");
-  const applications = getApplications();
 
   const displayJobs =
     activeTab === "live"
@@ -57,16 +44,14 @@ export default function RecruiterDashboard() {
         ? closedJobs
         : [];
 
-  const totalApplicants = jobs.reduce(
-    (sum, j) => sum + applications.filter((a) => a.jobId === j.id).length,
-    0
-  );
-
-  function handleDelete(jobId) {
+  async function handleDelete(jobId) {
     if (!confirm("Are you sure you want to delete this posting?")) return;
-    const updatedLocal = getLocalJobs().filter((j) => j.id !== jobId);
-    localStorage.setItem(RECRUITER_JOBS_KEY, JSON.stringify(updatedLocal));
-    setJobs((prev) => prev.filter((j) => j.id !== jobId));
+    try {
+      await jobApi.delete(jobId);
+      setJobs((prev) => prev.filter((j) => j._id !== jobId));
+    } catch (err) {
+      alert(err.message || "Failed to delete posting.");
+    }
   }
 
   if (currentUser?.recruiterStatus === "pending") {
@@ -128,11 +113,9 @@ export default function RecruiterDashboard() {
               sub: `${closedJobs.length} archived`,
             },
             {
-              value: totalApplicants,
+              value: "—",
               label: "Total Applicants",
-              sub: activeJobs.length
-                ? `Average ${Math.round(totalApplicants / activeJobs.length)} per posting`
-                : "No active postings",
+              sub: "View per posting",
             },
             {
               value: jobs.length,
@@ -201,10 +184,9 @@ export default function RecruiterDashboard() {
             </div>
           ) : (
             displayJobs.map((job) => {
-              const jobApps = applications.filter((a) => a.jobId === job.id);
               return (
                 <div
-                  key={job.id}
+                  key={job._id}
                   className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 border-b border-outline-variant/20 dark:border-[#1a202c]"
                 >
                   {/* Info */}
@@ -219,7 +201,7 @@ export default function RecruiterDashboard() {
                         {job.category}
                       </span>
                       <span className="text-[11px] text-on-surface-variant dark:text-[#828796]">
-                        Ref: #{job.id}
+                        Ref: #{job._id}
                       </span>
                     </div>
                     <h3 className="font-headline italic text-xl text-primary dark:text-[#fbf9f4] leading-snug">
@@ -238,7 +220,7 @@ export default function RecruiterDashboard() {
                         Applicants
                       </span>
                       <span className="font-headline text-xl text-primary dark:text-[#fbf9f4]">
-                        {jobApps.length}
+                        —
                       </span>
                     </div>
                     <div className="text-center">
@@ -254,7 +236,7 @@ export default function RecruiterDashboard() {
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Link
-                      to={`/recruiter/edit-job/${job.id}`}
+                      to={`/recruiter/edit-job/${job._id}`}
                       title="Edit"
                       className="flex h-10 w-10 items-center justify-center border border-outline-variant/30 dark:border-[#1a202c] text-on-surface-variant dark:text-[#828796] hover:text-primary dark:hover:text-[#fbf9f4] hover:border-primary dark:hover:border-[#fbf9f4] transition-colors"
                     >
@@ -263,7 +245,7 @@ export default function RecruiterDashboard() {
                       </span>
                     </Link>
                     <Link
-                      to={`/recruiter/jobs/${job.id}/applicants`}
+                      to={`/recruiter/jobs/${job._id}/applicants`}
                       title="View applicants"
                       className="flex h-10 w-10 items-center justify-center border border-outline-variant/30 dark:border-[#1a202c] text-on-surface-variant dark:text-[#828796] hover:text-primary dark:hover:text-[#fbf9f4] hover:border-primary dark:hover:border-[#fbf9f4] transition-colors"
                     >
@@ -272,7 +254,7 @@ export default function RecruiterDashboard() {
                       </span>
                     </Link>
                     <button
-                      onClick={() => handleDelete(job.id)}
+                      onClick={() => handleDelete(job._id)}
                       title="Delete"
                       className="flex h-10 w-10 items-center justify-center border border-outline-variant/30 dark:border-[#1a202c] text-on-surface-variant dark:text-[#828796] hover:text-error hover:border-error transition-colors"
                     >

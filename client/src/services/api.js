@@ -99,12 +99,14 @@ export const bookmarkApi = {
 
 // ── Jobs ───────────────────────────────────────────────────────────────────
 export const jobApi = {
-  /** Returns { items, total, page, limit }. Params: { q, category, location, status, page, limit } */
+  /** Returns { items, total, page, limit }. Params: { q, category, location, status, recruiterId, page, limit } */
   getAll: (params = {}) =>
     request(`/jobs?${new URLSearchParams(params)}`),
 
   /** Returns a single job object */
   getById: (id) => request(`/jobs/${id}`),
+
+  delete: (id) => request(`/jobs/${id}`, { method: "DELETE" }),
 };
 
 // ── Applications ───────────────────────────────────────────────────────────

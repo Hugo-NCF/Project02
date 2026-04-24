@@ -11,12 +11,13 @@ async function createJob(req, res, next) {
 
 async function getJobs(req, res, next) {
   try {
-    const { q, category, location, status, page = 1, limit = 20 } = req.query;
+    const { q, category, location, status, recruiterId, page = 1, limit = 20 } = req.query;
     const filter = {};
 
     if (category) filter.category = category;
     if (location) filter.location = new RegExp(location, "i");
     if (status) filter.status = status;
+    if (recruiterId) filter.recruiterId = recruiterId;
     if (q) filter.$text = { $search: q };
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
