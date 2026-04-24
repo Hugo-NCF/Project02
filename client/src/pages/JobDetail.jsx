@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { jobApi } from "../services/api";
+import { jobApi, bookmarkApi } from "../services/api";
 
 const CATEGORY_STYLE = {
   Faculty:        "text-secondary dark:text-brass border-secondary dark:border-brass",
@@ -14,9 +14,11 @@ export default function JobDetail() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const [job,     setJob]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [job,          setJob]          = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+  const [bookmarked,   setBookmarked]   = useState(false);
+  const [saveLoading,  setSaveLoading]  = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -26,6 +28,29 @@ export default function JobDetail() {
       .catch((err) => setError(err.status === 404 ? "not_found" : err.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== "seeker") return;
+    bookmarkApi.check(id)
+      .then(({ bookmarked }) => setBookmarked(bookmarked))
+      .catch(() => {});
+  }, [id, currentUser]);
+
+  async function handleBookmark() {
+    if (!currentUser) { navigate("/login"); return; }
+    setSaveLoading(true);
+    try {
+      if (bookmarked) {
+        await bookmarkApi.remove(id);
+        setBookmarked(false);
+      } else {
+        await bookmarkApi.add(id);
+        setBookmarked(true);
+      }
+    } finally {
+      setSaveLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -194,6 +219,21 @@ export default function JobDetail() {
                   </div>
                 )}
               </div>
+
+              {/* Save button — seekers only */}
+              {currentUser?.role === "seeker" && (
+                <button
+                  onClick={handleBookmark}
+                  disabled={saveLoading}
+                  className={`w-full py-3 text-[11px] font-bold uppercase tracking-widest border transition-colors disabled:opacity-50 ${
+                    bookmarked
+                      ? "bg-secondary dark:bg-brass text-on-primary dark:text-[#030813] border-secondary dark:border-brass"
+                      : "border-outline-variant/40 dark:border-[#1a202c] text-on-surface-variant dark:text-[#828796] hover:border-secondary hover:text-secondary dark:hover:border-brass dark:hover:text-brass"
+                  }`}
+                >
+                  {bookmarked ? "✓ Position Saved" : "Save Position"}
+                </button>
+              )}
 
               {/* Key details */}
               <div className="bg-surface-container-low dark:bg-[#0d1829] border border-outline-variant/20 dark:border-[#1a202c] p-6 space-y-5">

@@ -2,20 +2,14 @@ const User = require("../models/User");
 
 async function createUser(req, res, next) {
   try {
-    const { name, email, password, role, profile } = req.body;
-
-    if (!password || password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters" });
-    }
+    const { name, email, role, profile } = req.body;
 
     const user = await User.create({
       name,
       email,
-      passwordHash: `plain:${password}`,
       role,
       profile,
+      ...(role === "recruiter" ? { recruiterStatus: "pending" } : {}),
     });
 
     res.status(201).json(user);
@@ -68,10 +62,21 @@ async function deleteUser(req, res, next) {
   }
 }
 
+async function getMe(req, res, next) {
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createUser,
   getUsers,
   getUserById,
+  getMe,
   updateUser,
   deleteUser,
 };

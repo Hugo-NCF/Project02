@@ -89,6 +89,20 @@ function ModerationItem({ label, body }) {
   );
 }
 
+/* ── Relative time formatter ────────────────────────────── */
+function relativeTime(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2) return "Just now";
+  if (mins < 60) return `${mins} mins ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "Yesterday";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 /* ── Dashboard ──────────────────────────────────────────── */
 export default function AdminDashboard() {
   const { currentUser } = useAuth();
@@ -103,6 +117,8 @@ export default function AdminDashboard() {
     pendingRecruiters: null,
   });
 
+  const [recentActivity, setRecentActivity] = useState([]);
+
   const [partners] = useState([
     { name: "Stanford University", active: true },
     { name: "Yale University", active: true },
@@ -113,7 +129,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [usersRes, jobsRes, activeJobsRes, flaggedRes, seekersRes, recruitersRes, pendingRes] =
+        const [usersRes, jobsRes, activeJobsRes, flaggedRes, seekersRes, recruitersRes, pendingRes, activityRes] =
           await Promise.all([
             adminApi.getUsers({ limit: 1 }),
             adminApi.getJobs({ limit: 1 }),
@@ -122,6 +138,7 @@ export default function AdminDashboard() {
             adminApi.getUsers({ role: "seeker", limit: 1 }),
             adminApi.getUsers({ role: "recruiter", limit: 1 }),
             adminApi.getPendingRecruiters(),
+            notificationApi.getAll({ limit: 4 }),
           ]);
 
         setStats({
@@ -133,6 +150,10 @@ export default function AdminDashboard() {
           recruiters: recruitersRes.total,
           pendingRecruiters: pendingRes.length,
         });
+
+        if (activityRes.items?.length) {
+          setRecentActivity(activityRes.items);
+        }
       } catch (err) {
         console.warn("Dashboard stats fetch failed:", err.message);
       }
@@ -179,30 +200,21 @@ export default function AdminDashboard() {
               </span>
             </div>
 
-            <ActivityItem
-              icon="school"
-              title="Stanford University posted a new CS faculty position."
-              sub="School of Engineering · Faculty"
-              time="14 mins ago"
-            />
-            <ActivityItem
-              icon="person_add"
-              title="Prof. James Whitmore registered as a recruiter."
-              sub="Yale University — awaiting verification"
-              time="3 hrs ago"
-            />
-            <ActivityItem
-              icon="verified_user"
-              title="Johns Hopkins Medicine credentials re-validated."
-              sub="Annual institutional audit complete"
-              time="Yesterday"
-            />
-            <ActivityItem
-              icon="description"
-              title="Dr. Arthur Sterling applied to Associate Professor of History."
-              sub="Yale University · Application #app_018"
-              time="Apr 9"
-            />
+            {recentActivity.length > 0 ? (
+              recentActivity.map((n) => (
+                <ActivityItem
+                  key={n._id}
+                  icon={n.icon || "notifications"}
+                  title={n.title}
+                  sub={n.body}
+                  time={relativeTime(n.createdAt)}
+                />
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm italic text-on-surface-variant dark:text-[#45474c]">
+                No recent activity yet.
+              </p>
+            )}
           </section>
 
           {/* User Management Digest — dark panel */}
