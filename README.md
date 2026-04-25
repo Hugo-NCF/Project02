@@ -8,13 +8,13 @@ A HigherEdJobs-style full-stack web application where universities post academic
 
 ## Team
 
-| Member | Role | GitHub |
-|---|---|---|
-| Hugo Cruz | Project Manager | `Hugo-NCF` / `hugocruz` |
-| Jose Araya | Full-Stack Developer | `jaas29` |
-| Bruno Valdez | Full-Stack Developer | `brunovaldez` |
-| Darius Beckford | Full-Stack Developer | `Raydar` |
-| Sebastian Rodriguez | Full-Stack Developer | `sebaasr0` |
+| Member              | Role                 | GitHub                  |
+| ------------------- | -------------------- | ----------------------- |
+| Hugo Cruz           | Project Manager      | `Hugo-NCF` / `hugocruz` |
+| Jose Araya          | Full-Stack Developer | `jaas29`                |
+| Bruno Valdez        | Full-Stack Developer | `brunovaldez`           |
+| Darius Beckford     | Full-Stack Developer | `Raydar`                |
+| Sebastian Rodriguez | Full-Stack Developer | `sebaasr0`              |
 
 ### Proof of collaboration
 
@@ -35,8 +35,8 @@ We coordinated work via a shared Trello board and Discord; see `docs/` for Trell
 ## Live Links
 
 - **GitHub repo:** https://github.com/<org>/Project02
-- **Live Demo:** https://project02-66t1.vercel.app    
-- **API:** https://campus-careers-api.onrender.com/api      
+- **Live Demo:** https://project02-66t1.vercel.app
+- **API:** https://campus-careers-api.onrender.com/api
 - **Frontend (local):** http://localhost:5173
 - **Backend API (local):** http://localhost:5050/api
 - **Demo video:** (link inside `docs/demo.md` or shared live in class)
@@ -55,7 +55,7 @@ We coordinated work via a shared Trello board and Discord; see `docs/` for Trell
 - **Email notifications** on application submission (nodemailer)
 - **Recruiter approval flow** — admins approve/reject new recruiter accounts
 - **Admin stats dashboard** — user/job/application counts
-- **Dark mode** toggle persisted across sessions *(extra credit)*
+- **Dark mode** toggle persisted across sessions _(extra credit)_
 - Responsive layout (works on phone/tablet/desktop)
 
 ---
@@ -145,6 +145,7 @@ High-level component diagram — everything a request touches:
 ## Role-Based Flows
 
 ### Job Seeker
+
 ```
 Register ──▶ Login ──▶ Browse /jobs ──▶ Filter (location/category/salary)
                 │
@@ -155,6 +156,7 @@ Register ──▶ Login ──▶ Browse /jobs ──▶ Filter (location/categ
 ```
 
 ### Recruiter / Employer
+
 ```
 Register (role=recruiter, status=pending)
       │
@@ -167,6 +169,7 @@ Admin approves ──▶ Login ──▶ /recruiter dashboard
 ```
 
 ### Admin
+
 ```
 Login ──▶ /admin
            ├─▶ Dashboard (stats: users, jobs, applications)
@@ -182,43 +185,46 @@ Login ──▶ /admin
 Base URL: `/api`
 
 ### Public
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/health` | Service heartbeat |
-| POST | `/users` | Register user (also called by auth sync) |
-| GET | `/jobs` | List/search/filter jobs (q, category, location, salaryMin/Max, page, limit) |
-| GET | `/jobs/:id` | Job details |
+
+| Method | Path        | Purpose                                                                     |
+| ------ | ----------- | --------------------------------------------------------------------------- |
+| GET    | `/health`   | Service heartbeat                                                           |
+| POST   | `/users`    | Register user (also called by auth sync)                                    |
+| GET    | `/jobs`     | List/search/filter jobs (q, category, location, salaryMin/Max, page, limit) |
+| GET    | `/jobs/:id` | Job details                                                                 |
 
 ### Auth required
-| Method | Path | Role | Purpose |
-|---|---|---|---|
-| GET | `/users/me` | any | Current user profile |
-| PUT | `/users/:id` | self/admin | Update profile |
-| POST | `/jobs` | recruiter | Create job |
-| PUT | `/jobs/:id` | recruiter (owner) | Update job |
-| DELETE | `/jobs/:id` | recruiter (owner) / admin | Delete job |
-| POST | `/applications` | seeker | Submit application + resume upload |
-| GET | `/applications/my` | seeker | My applications |
-| GET | `/applications/check/:jobId` | seeker | Already applied? |
-| GET | `/applications/job/:jobId` | recruiter / admin | Applicants for a job |
-| PATCH | `/applications/:id/status` | recruiter / admin | Update status |
-| GET, POST, DELETE | `/bookmarks`, `/bookmarks/:jobId` | seeker | Save/unsave/list jobs |
-| GET | `/bookmarks/check/:jobId` | seeker | Is bookmarked? |
+
+| Method            | Path                              | Role                      | Purpose                            |
+| ----------------- | --------------------------------- | ------------------------- | ---------------------------------- |
+| GET               | `/users/me`                       | any                       | Current user profile               |
+| PUT               | `/users/:id`                      | self/admin                | Update profile                     |
+| POST              | `/jobs`                           | recruiter                 | Create job                         |
+| PUT               | `/jobs/:id`                       | recruiter (owner)         | Update job                         |
+| DELETE            | `/jobs/:id`                       | recruiter (owner) / admin | Delete job                         |
+| POST              | `/applications`                   | seeker                    | Submit application + resume upload |
+| GET               | `/applications/my`                | seeker                    | My applications                    |
+| GET               | `/applications/check/:jobId`      | seeker                    | Already applied?                   |
+| GET               | `/applications/job/:jobId`        | recruiter / admin         | Applicants for a job               |
+| PATCH             | `/applications/:id/status`        | recruiter / admin         | Update status                      |
+| GET, POST, DELETE | `/bookmarks`, `/bookmarks/:jobId` | seeker                    | Save/unsave/list jobs              |
+| GET               | `/bookmarks/check/:jobId`         | seeker                    | Is bookmarked?                     |
 
 ### Admin-only
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/admin/users` | Paginated users list |
-| GET | `/admin/users/pending-recruiters` | Recruiters awaiting approval |
-| PATCH/DELETE | `/admin/users/:id` | Update / remove user |
-| POST | `/admin/users/:id/approve` | Approve recruiter |
-| POST | `/admin/users/:id/reject` | Reject recruiter (sends email) |
-| GET | `/admin/jobs` | Paginated jobs list |
-| PATCH/DELETE | `/admin/jobs/:id` | Close / delete job |
-| GET, POST | `/notifications` | List / create |
-| PATCH | `/notifications/:id/read` | Mark single read |
-| POST | `/notifications/mark-all-read` | Mark all read |
-| DELETE | `/notifications/:id` | Dismiss |
+
+| Method       | Path                              | Purpose                        |
+| ------------ | --------------------------------- | ------------------------------ |
+| GET          | `/admin/users`                    | Paginated users list           |
+| GET          | `/admin/users/pending-recruiters` | Recruiters awaiting approval   |
+| PATCH/DELETE | `/admin/users/:id`                | Update / remove user           |
+| POST         | `/admin/users/:id/approve`        | Approve recruiter              |
+| POST         | `/admin/users/:id/reject`         | Reject recruiter (sends email) |
+| GET          | `/admin/jobs`                     | Paginated jobs list            |
+| PATCH/DELETE | `/admin/jobs/:id`                 | Close / delete job             |
+| GET, POST    | `/notifications`                  | List / create                  |
+| PATCH        | `/notifications/:id/read`         | Mark single read               |
+| POST         | `/notifications/mark-all-read`    | Mark all read                  |
+| DELETE       | `/notifications/:id`              | Dismiss                        |
 
 ---
 
@@ -227,9 +233,9 @@ Base URL: `/api`
 Five MongoDB collections (schemas in `server/models/`):
 
 - **users** — `name`, `email` (unique), `role`, `profile{phone,bio,company,resumeUrl}`, `isDisabled`, `recruiterStatus`
-- **jobs** — `title`, `institution`, `category`, `location`, `salaryMin/Max`, `description`, `qualifications`, `deadline`, `startDate`, `recruiterId`, `status`  + text index on `(title, description, institution)`
-- **applications** — `jobId` (ref Job), `applicantId` (Firebase uid), `resumeUrl`, `coverLetter`, `coverLetterUrl`, `status`, `dateApplied`  + unique `(jobId, applicantId)`
-- **bookmarks** — `userId`, `jobId` (ref Job)  + unique `(userId, jobId)`
+- **jobs** — `title`, `institution`, `category`, `location`, `salaryMin/Max`, `description`, `qualifications`, `deadline`, `startDate`, `recruiterId`, `status` + text index on `(title, description, institution)`
+- **applications** — `jobId` (ref Job), `applicantId` (Firebase uid), `resumeUrl`, `coverLetter`, `coverLetterUrl`, `status`, `dateApplied` + unique `(jobId, applicantId)`
+- **bookmarks** — `userId`, `jobId` (ref Job) + unique `(userId, jobId)`
 - **notifications** — `type`, `title`, `body`, `read`, `relatedId/relatedModel`
 
 Seed script populates the rubric-required dataset:
@@ -298,19 +304,18 @@ npm run dev                   # http://localhost:5173
 ```
 
 **Demo accounts** (after running the seed):
-- Admin: `admin1@campus.edu` / `Password123!`
-- Recruiter: `recruiter1@campus.edu` / `Password123!`
-- Seeker: `seeker1@campus.edu` / `Password123!`
+
+- Admin credentials sent privately to the instructor.
 
 ---
 
 ## Development Stages (what we actually shipped)
 
-| Week | Milestone | Status |
-|---|---|---|
-| 1 | Frontend + Firebase Auth, role-based routes, mock data | ✅ |
-| 2 | Express REST API, CRUD, admin flows, notifications, bookmarks, recruiter approval | ✅ |
-| 3 | MongoDB integration, seed 100+ jobs, polish, dark mode, resume uploads, demo | ✅ |
+| Week | Milestone                                                                         | Status |
+| ---- | --------------------------------------------------------------------------------- | ------ |
+| 1    | Frontend + Firebase Auth, role-based routes, mock data                            | ✅     |
+| 2    | Express REST API, CRUD, admin flows, notifications, bookmarks, recruiter approval | ✅     |
+| 3    | MongoDB integration, seed 100+ jobs, polish, dark mode, resume uploads, demo      | ✅     |
 
 ---
 
@@ -323,8 +328,3 @@ npm run dev                   # http://localhost:5173
 - **File uploads** — switched from storing Base64 in Mongo to `multer` disk storage + static `/uploads` route, keeps documents out of the DB.
 
 ---
-
-## Extra Credit
-
-- **Dark mode** — `DarkModeContext` with a toggle in the navbar, preference persisted to `localStorage`, Tailwind `dark:` variants throughout.
-- **Custom auth middleware** — `server/middleware/verifyToken.js` performs its own token verification (Firebase Admin for real tokens, base64 payload for dev) and handles user provisioning, rather than relying on Firebase client callbacks.
