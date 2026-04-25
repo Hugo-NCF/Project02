@@ -2,7 +2,9 @@ const Job = require("../models/Job");
 
 async function createJob(req, res, next) {
   try {
-    const job = await Job.create(req.body);
+    // Always derive recruiterId from the verified token — never trust the client
+    const { recruiterId: _ignored, ...payload } = req.body;
+    const job = await Job.create({ ...payload, recruiterId: req.user.uid });
     res.status(201).json(job);
   } catch (err) {
     next(err);
@@ -49,11 +51,22 @@ async function getJobById(req, res, next) {
 
 async function updateJob(req, res, next) {
   try {
-    const job = await Job.findByIdAndUpdate(req.params.id, req.body, {
+    const existing = await Job.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Job not found" });
+
+    // Owner-or-admin check — recruiters can only edit their own jobs
+    const isOwner = String(existing.recruiterId) === String(req.user.uid);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden: you do not own this job" });
+    }
+
+    // Don't allow recruiterId to be changed via update
+    const { recruiterId: _ignored, ...payload } = req.body;
+    const job = await Job.findByIdAndUpdate(req.params.id, payload, {
       new: true,
       runValidators: true,
     });
-    if (!job) return res.status(404).json({ error: "Job not found" });
     res.json(job);
   } catch (err) {
     next(err);
@@ -62,9 +75,17 @@ async function updateJob(req, res, next) {
 
 async function deleteJob(req, res, next) {
   try {
-    const job = await Job.findByIdAndDelete(req.params.id);
-    if (!job) return res.status(404).json({ error: "Job not found" });
-    res.json({ message: "Job deleted", id: job._id });
+    const existing = await Job.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Job not found" });
+
+    const isOwner = String(existing.recruiterId) === String(req.user.uid);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden: you do not own this job" });
+    }
+
+    await Job.findByIdAndDelete(req.params.id);
+    res.json({ message: "Job deleted", id: existing._id });
   } catch (err) {
     next(err);
   }

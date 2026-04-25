@@ -47,13 +47,28 @@ async function getUserById(req, res, next) {
 
 async function updateUser(req, res, next) {
   try {
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ error: "User not found" });
+
+    // Owner-or-admin: a user can edit their own record, admin can edit anyone
+    const isAdmin = req.user.role === "admin";
+    const isSelf = String(target.email) === String(req.user.email);
+    if (!isAdmin && !isSelf) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // Non-admins cannot escalate role or toggle isDisabled
     const { name, role, profile, isDisabled } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { name, role, profile, isDisabled },
-      { new: true, runValidators: true }
-    );
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const update = { name, profile };
+    if (isAdmin) {
+      if (role !== undefined) update.role = role;
+      if (isDisabled !== undefined) update.isDisabled = isDisabled;
+    }
+
+    const user = await User.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+      runValidators: true,
+    });
     res.json(user);
   } catch (err) {
     next(err);
@@ -62,6 +77,9 @@ async function updateUser(req, res, next) {
 
 async function deleteUser(req, res, next) {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: admin only" });
+    }
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ message: "User deleted", id: user._id });
