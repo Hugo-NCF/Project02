@@ -17,7 +17,7 @@ async function createUser(req, res, next) {
         },
         $setOnInsert: { email },
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
     );
 
     res.status(201).json(user);
